@@ -57,9 +57,12 @@ export class MemStorage implements IStorage {
     const id = this.currentFileId++;
     const now = new Date();
     const file: CsvFile = { 
-      ...insertFile, 
-      id, 
-      createdAt: now 
+      id,
+      filename: insertFile.filename,
+      originalName: insertFile.originalName,
+      userId: insertFile.userId ?? null, // Ensure userId is never undefined
+      createdAt: now,
+      headers: insertFile.headers
     };
     this.csvFiles.set(id, file);
     return file;
@@ -139,18 +142,64 @@ export class MemStorage implements IStorage {
         
         const rowData = item.rowData as CsvRowData;
         
-        // Check if the item matches all filters
+        // Handle special filters
+        if (filters._global) {
+          // Global search across all fields
+          const searchTerm = filters._global.toLowerCase();
+          const matches = Object.values(rowData).some(val => 
+            String(val).toLowerCase().includes(searchTerm)
+          );
+          if (!matches) return false;
+        }
+        
+        // Handle status filters
+        if (filters.status_active || filters.status_inactive || filters.status_pending) {
+          const status = String(rowData.Status || '').toLowerCase();
+          const statusMatches = 
+            (filters.status_active && status === 'active') ||
+            (filters.status_inactive && status === 'inactive') ||
+            (filters.status_pending && status === 'pending');
+          
+          if (!statusMatches) return false;
+        }
+        
+        // Handle date range filters
+        if (filters.date_from || filters.date_to) {
+          // Assuming Year is the date field for vehicle data
+          const year = parseInt(String(rowData.Year), 10);
+          
+          if (filters.date_from) {
+            const fromYear = parseInt(filters.date_from, 10);
+            if (!isNaN(fromYear) && year < fromYear) return false;
+          }
+          
+          if (filters.date_to) {
+            const toYear = parseInt(filters.date_to, 10);
+            if (!isNaN(toYear) && year > toYear) return false;
+          }
+        }
+        
+        // Handle regular field filters (excluding special ones)
         return Object.entries(filters).every(([field, value]) => {
+          // Skip special filters
+          if (field === '_global' || 
+              field.startsWith('status_') || 
+              field === 'date_from' || 
+              field === 'date_to') {
+            return true;
+          }
+          
           if (!value) return true; // Skip empty filters
           
           const fieldValue = rowData[field];
+          if (fieldValue === undefined) return true; // Skip if field doesn't exist
           
           if (Array.isArray(value)) {
             // If the filter value is an array, check if the field value is in the array
             return value.includes(fieldValue);
           } else if (typeof value === 'string') {
             // If the filter value is a string, do a case-insensitive search
-            return String(fieldValue).toLowerCase().includes(value.toLowerCase());
+            return String(fieldValue).toLowerCase().includes(String(value).toLowerCase());
           } else {
             // Otherwise, just check for equality
             return fieldValue === value;

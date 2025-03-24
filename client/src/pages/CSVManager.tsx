@@ -160,7 +160,25 @@ export default function CSVManager() {
 
   // Handle filter apply
   const handleFilterApply = (newFilters: Record<string, any>) => {
-    setFilters(newFilters);
+    // Validate and clean filters
+    const cleanedFilters: Record<string, any> = {};
+    
+    Object.entries(newFilters).forEach(([key, value]) => {
+      // Skip empty values except boolean flags
+      if (value === "" || value === null || value === undefined) {
+        return;
+      }
+      
+      // Convert string values to proper format if they represent numbers
+      if (typeof value === 'string' && !isNaN(Number(value)) && key !== '_global') {
+        cleanedFilters[key] = Number(value);
+      } else {
+        cleanedFilters[key] = value;
+      }
+    });
+    
+    console.log("Applying filters:", cleanedFilters);
+    setFilters(cleanedFilters);
     setCurrentPage(1);
     setStatusMessage("Filters applied");
   };
