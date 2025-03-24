@@ -25,14 +25,14 @@ export default function CSVManager() {
   const [searchColumn, setSearchColumn] = useState<string>("all");
 
   // Query for files list
-  const filesQuery = useQuery({
+  const filesQuery = useQuery<CsvFile[]>({
     queryKey: ["/api/csv/files"],
     refetchInterval: false,
     refetchOnWindowFocus: true
   });
 
   // Query for CSV data based on selected file
-  const dataQuery = useQuery({
+  const dataQuery = useQuery<{data: CsvData[], pagination: {page: number, limit: number, total: number, totalPages: number}}>({
     queryKey: [`/api/csv/data/${selectedFile?.id}`, currentPage, perPage, JSON.stringify(filters)],
     enabled: !!selectedFile,
     refetchInterval: false,
@@ -93,8 +93,12 @@ export default function CSVManager() {
   });
 
   // Mutation for filtering data
-  const filterMutation = useMutation({
-    mutationFn: async (filterData: { fileId: number; filters: Record<string, any> }) => {
+  const filterMutation = useMutation<
+    {data: CsvData[], pagination: {page: number, limit: number, total: number, totalPages: number}},
+    Error,
+    { fileId: number; filters: Record<string, any> }
+  >({
+    mutationFn: async (filterData) => {
       const response = await apiRequest(
         "POST", 
         `/api/csv/filter/${filterData.fileId}?page=${currentPage}&limit=${perPage}`,

@@ -16,6 +16,12 @@ import {
 } from 'recharts';
 import { type CsvData, type CsvRowData } from "@shared/schema";
 import { detectColumnType, getRecommendedChartType } from "@/lib/csvUtils";
+import { 
+  BarChart2, 
+  PieChart as PieChartIcon, 
+  LineChart as LineChartIcon,
+  ChevronLeft 
+} from "lucide-react";
 
 // Define colors for chart elements
 const COLORS = [
@@ -39,7 +45,7 @@ const ChartPanel: React.FC<ChartPanelProps> = ({
   headers,
   isCollapsed = false
 }) => {
-  const [selectedChart, setSelectedChart] = useState<string>("make");
+  const [selectedChart, setSelectedChart] = useState<string>(headers[0] || "make");
   const [chartType, setChartType] = useState<'pie' | 'bar' | 'line'>('pie');
   const [isLocalCollapsed, setIsLocalCollapsed] = useState(isCollapsed);
 
@@ -54,26 +60,8 @@ const ChartPanel: React.FC<ChartPanelProps> = ({
 
     const dataType = detectColumnType(values);
     
-    // For date fields, line chart is usually best
-    if (dataType === 'date' || fieldName.toLowerCase().includes('year')) {
-      return 'line';
-    }
-    
-    // For numeric fields with many values, bar charts work well
-    if (dataType === 'number') {
-      // Count unique values - if there are many, use bar chart
-      const uniqueValues = new Set(values).size;
-      return uniqueValues > 7 ? 'bar' : 'pie';
-    }
-    
-    // For categorical fields with few values, pie charts work best
-    const uniqueValues = new Set(values).size;
-    if (uniqueValues <= 10) {
-      return 'pie';
-    }
-    
-    // Default to bar for other cases
-    return 'bar';
+    // Use the utility function to get the recommended chart type
+    return getRecommendedChartType(fieldName, dataType);
   };
 
   // Prepare data for visualization
