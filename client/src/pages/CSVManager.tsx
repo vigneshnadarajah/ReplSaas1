@@ -294,17 +294,23 @@ export default function CSVManager() {
         
         {/* Grid Panel */}
         <GridPanel 
-          files={filesQuery.data ?? []}
+          files={filesQuery.data || []}
           selectedFile={selectedFile}
           onFileSelect={handleFileSelect}
-          data={(Object.keys(filters).length > 0 ? filterMutation.data?.data : dataQuery.data?.data) ?? []}
+          data={(Object.keys(filters).length > 0 
+            ? (filterMutation.data?.data || []) 
+            : (dataQuery.data?.data || []))}
           headers={selectedFile?.headers || []}
-          pagination={(Object.keys(filters).length > 0 ? filterMutation.data?.pagination : dataQuery.data?.pagination) ?? { 
-            page: currentPage, 
-            limit: perPage, 
-            total: 0, 
-            totalPages: 0 
-          }}
+          pagination={
+            (Object.keys(filters).length > 0 
+              ? filterMutation.data?.pagination 
+              : dataQuery.data?.pagination) || { 
+              page: currentPage, 
+              limit: perPage, 
+              total: 0, 
+              totalPages: 0 
+            }
+          }
           onPageChange={handlePageChange}
           onPerPageChange={handlePerPageChange}
           selectedRecord={selectedRecord}
