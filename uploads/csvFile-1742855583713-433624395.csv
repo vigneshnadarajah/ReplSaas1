@@ -1,0 +1,31 @@
+Make,Model,Year,BodyStyle,FuelType,Transmission,SafetyRating,EngineSize,Seats,Doors,Status
+Toyota,Camry,2022,Sedan,Gasoline,Automatic,5,2.5,5,4,Active
+Honda,Civic,2021,Sedan,Gasoline,CVT,5,1.5,5,4,Active
+Ford,F-150,2020,Truck,Gasoline,Automatic,4,3.5,5,4,Active
+Tesla,Model 3,2022,Sedan,Electric,Automatic,5,0,5,4,Active
+Chevrolet,Malibu,2019,Sedan,Gasoline,Automatic,4,1.5,5,4,Inactive
+BMW,X5,2021,SUV,Diesel,Automatic,5,3.0,7,5,Active
+Mercedes,E-Class,2020,Sedan,Gasoline,Automatic,5,2.0,5,4,Active
+Audi,Q7,2022,SUV,Diesel,Automatic,5,3.0,7,5,Active
+Subaru,Outback,2021,Wagon,Gasoline,CVT,5,2.5,5,5,Active
+Volkswagen,Golf,2020,Hatchback,Gasoline,Manual,4,1.4,5,5,Active
+Mazda,CX-5,2022,SUV,Gasoline,Automatic,5,2.5,5,5,Active
+Nissan,Altima,2021,Sedan,Gasoline,CVT,4,2.5,5,4,Active
+Kia,Sorento,2022,SUV,Hybrid,Automatic,5,1.6,7,5,Active
+Hyundai,Tucson,2021,SUV,Hybrid,Automatic,5,1.6,5,5,Active
+Jeep,Wrangler,2022,SUV,Gasoline,Manual,4,3.6,5,4,Active
+Volvo,XC90,2021,SUV,Hybrid,Automatic,5,2.0,7,5,Active
+Lexus,RX,2022,SUV,Hybrid,Automatic,5,3.5,5,5,Active
+Porsche,911,2021,Coupe,Gasoline,Automatic,4,3.0,4,2,Active
+Land Rover,Range Rover,2022,SUV,Diesel,Automatic,5,3.0,5,5,Active
+Dodge,Charger,2020,Sedan,Gasoline,Automatic,4,3.6,5,4,Inactive
+Ford,Mustang,2021,Coupe,Gasoline,Manual,4,5.0,4,2,Active
+Chevrolet,Corvette,2022,Coupe,Gasoline,Automatic,4,6.2,2,2,Active
+Tesla,Model S,2021,Sedan,Electric,Automatic,5,0,5,4,Active
+Toyota,RAV4,2022,SUV,Hybrid,Automatic,5,2.5,5,5,Active
+Honda,CR-V,2021,SUV,Gasoline,CVT,5,1.5,5,5,Active
+Subaru,Forester,2022,SUV,Gasoline,CVT,5,2.5,5,5,Pending
+BMW,3 Series,2020,Sedan,Gasoline,Automatic,5,2.0,5,4,Active
+Audi,A4,2021,Sedan,Gasoline,Automatic,5,2.0,5,4,Active
+Mercedes,C-Class,2022,Sedan,Gasoline,Automatic,5,2.0,5,4,Active
+Mazda,Mazda3,2020,Sedan,Gasoline,Automatic,5,2.5,5,4,Active

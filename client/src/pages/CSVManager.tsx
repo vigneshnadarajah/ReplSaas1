@@ -6,6 +6,7 @@ import HeaderPanel from "@/components/csv-manager/HeaderPanel";
 import FilterPanel from "@/components/csv-manager/FilterPanel";
 import GridPanel from "@/components/csv-manager/GridPanel";
 import DetailsPanel from "@/components/csv-manager/DetailsPanel";
+import ChartPanel from "@/components/csv-manager/ChartPanel";
 import StatusBar from "@/components/csv-manager/StatusBar";
 import UploadProgressDialog from "@/components/csv-manager/UploadProgressDialog";
 import { type CsvFile, type CsvData, type CsvRowData } from "@shared/schema";
@@ -324,6 +325,14 @@ export default function CSVManager() {
         {/* Details Panel */}
         <DetailsPanel 
           record={selectedRecord}
+          headers={selectedFile?.headers || []}
+        />
+        
+        {/* Chart Panel */}
+        <ChartPanel
+          data={(Object.keys(filters).length > 0 
+            ? (filterMutation.data?.data || []) 
+            : (dataQuery.data?.data || []))}
           headers={selectedFile?.headers || []}
         />
       </div>

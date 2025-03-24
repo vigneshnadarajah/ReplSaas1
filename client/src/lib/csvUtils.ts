@@ -40,7 +40,7 @@ export const formatDate = (dateString: string): string => {
 /**
  * Detects the data type of a CSV column
  * @param values Array of values from a column
- * @returns The detected data type ('string', 'number', 'date', 'boolean')
+ * @returns The detected data type ('string', 'number', 'date', 'boolean', 'category')
  */
 export const detectColumnType = (values: any[]): string => {
   // Skip empty values
@@ -54,6 +54,14 @@ export const detectColumnType = (values: any[]): string => {
   
   // Check if all values are dates
   const dateRegex = /^\d{4}-\d{2}-\d{2}$|^\d{2}\/\d{2}\/\d{4}$|^\d{2}-\d{2}-\d{4}$/;
+  const yearRegex = /^(19|20)\d{2}$/; // Year format detection (1900-2099)
+  
+  // Check for years first
+  if (nonEmptyValues.every(v => yearRegex.test(String(v)))) {
+    return 'year';
+  }
+  
+  // Then check for full dates
   const allDates = nonEmptyValues.every(v => dateRegex.test(String(v)) && !isNaN(Date.parse(String(v))));
   if (allDates) return 'date';
   
@@ -63,6 +71,12 @@ export const detectColumnType = (values: any[]): string => {
     booleanValues.includes(String(v).toLowerCase())
   );
   if (allBooleans) return 'boolean';
+  
+  // Check if it's a categorical field with few unique values
+  const uniqueValues = new Set(nonEmptyValues.map(v => String(v).toLowerCase()));
+  if (uniqueValues.size <= 15 && uniqueValues.size > 1) {
+    return 'category';
+  }
   
   // Default to string
   return 'string';
@@ -83,4 +97,60 @@ export const getInitials = (name: string): string => {
   }
   
   return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+};
+
+/**
+ * Gets the appropriate chart type for a field based on its name and data type
+ * @param fieldName The name of the field
+ * @param dataType The detected data type
+ * @returns The recommended chart type ('pie', 'bar', 'line')
+ */
+export const getRecommendedChartType = (fieldName: string, dataType: string): 'pie' | 'bar' | 'line' => {
+  // Use lowercase for consistent comparisons
+  const lowerFieldName = fieldName.toLowerCase();
+  
+  // Year or Date fields often work well with line charts
+  if (dataType === 'year' || dataType === 'date' || lowerFieldName.includes('year') || lowerFieldName.includes('date')) {
+    return 'line';
+  }
+  
+  // Numeric fields often work well with bar charts
+  if (dataType === 'number') {
+    // Small ranges might work better as pie charts
+    return 'bar';
+  }
+  
+  // Categorical fields with few values work well with pie charts
+  if (dataType === 'category' || dataType === 'boolean') {
+    return 'pie';
+  }
+  
+  // Status fields typically work well with pie charts
+  if (lowerFieldName.includes('status') || 
+      lowerFieldName.includes('type') || 
+      lowerFieldName.includes('category')) {
+    return 'pie';
+  }
+  
+  // Default to bar for other cases
+  return 'bar';
+};
+
+/**
+ * Function to determine a color based on status
+ * @param status The status value
+ * @returns A color code for the status
+ */
+export const statusColor = (status: string): string => {
+  const lowerStatus = status.toLowerCase();
+  
+  if (lowerStatus === 'active') {
+    return 'bg-green-100 text-green-800';
+  } else if (lowerStatus === 'inactive') {
+    return 'bg-red-100 text-red-800';
+  } else if (lowerStatus === 'pending') {
+    return 'bg-yellow-100 text-yellow-800';
+  } else {
+    return 'bg-gray-100 text-gray-800';
+  }
 };
