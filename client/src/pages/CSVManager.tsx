@@ -116,11 +116,17 @@ export default function CSVManager() {
 
   // When fileId or filters change, refresh data
   useEffect(() => {
-    if (selectedFile && Object.keys(filters).length > 0) {
-      filterMutation.mutate({
-        fileId: selectedFile.id,
-        filters,
-      });
+    if (selectedFile) {
+      if (Object.keys(filters).length > 0) {
+        console.log("Applying filters:", filters);
+        filterMutation.mutate({
+          fileId: selectedFile.id,
+          filters,
+        });
+      } else {
+        // If no filters, fetch unfiltered data
+        dataQuery.refetch();
+      }
     }
   }, [selectedFile?.id, filters, currentPage, perPage]);
 
@@ -288,12 +294,17 @@ export default function CSVManager() {
         
         {/* Grid Panel */}
         <GridPanel 
-          files={filesQuery.data || []}
+          files={filesQuery.data ?? []}
           selectedFile={selectedFile}
           onFileSelect={handleFileSelect}
-          data={dataQuery.data?.data || filterMutation.data?.data || []}
+          data={(Object.keys(filters).length > 0 ? filterMutation.data?.data : dataQuery.data?.data) ?? []}
           headers={selectedFile?.headers || []}
-          pagination={dataQuery.data?.pagination || filterMutation.data?.pagination || { page: 1, limit: perPage, total: 0, totalPages: 0 }}
+          pagination={(Object.keys(filters).length > 0 ? filterMutation.data?.pagination : dataQuery.data?.pagination) ?? { 
+            page: currentPage, 
+            limit: perPage, 
+            total: 0, 
+            totalPages: 0 
+          }}
           onPageChange={handlePageChange}
           onPerPageChange={handlePerPageChange}
           selectedRecord={selectedRecord}
