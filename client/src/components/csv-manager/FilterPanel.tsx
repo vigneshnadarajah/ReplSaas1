@@ -73,10 +73,13 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
     if (fromDate) appliedFilters.date_from = fromDate;
     if (toDate) appliedFilters.date_to = toDate;
     
-    // Add status filters
+    // Add status filters - IMPORTANT: Only add if checked
     if (statusFilters.active) appliedFilters.status_active = true;
     if (statusFilters.inactive) appliedFilters.status_inactive = true;
     if (statusFilters.pending) appliedFilters.status_pending = true;
+    
+    // Log the filters being applied
+    console.log("FilterPanel - Applying filters:", appliedFilters);
     
     onApply(appliedFilters);
   };
