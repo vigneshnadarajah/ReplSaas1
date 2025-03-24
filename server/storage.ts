@@ -155,10 +155,14 @@ export class MemStorage implements IStorage {
         // Handle status filters
         if (filters.status_active || filters.status_inactive || filters.status_pending) {
           const status = String(rowData.Status || '').toLowerCase();
+          
+          // If one of the statuses is checked, at least one needs to match
           const statusMatches = 
             (filters.status_active && status === 'active') ||
             (filters.status_inactive && status === 'inactive') ||
             (filters.status_pending && status === 'pending');
+          
+          console.log(`Status filtering: ${status}, matches: ${statusMatches}`, filters);
           
           if (!statusMatches) return false;
         }
@@ -189,10 +193,12 @@ export class MemStorage implements IStorage {
             return true;
           }
           
-          if (!value) return true; // Skip empty filters
+          if (value === null || value === undefined || value === '') return true; // Skip empty filters
           
           const fieldValue = rowData[field];
           if (fieldValue === undefined) return true; // Skip if field doesn't exist
+          
+          console.log(`Field filter: ${field}=${value}, type: ${typeof value}, fieldValue: ${fieldValue}`);
           
           if (Array.isArray(value)) {
             // If the filter value is an array, check if the field value is in the array
@@ -200,6 +206,13 @@ export class MemStorage implements IStorage {
           } else if (typeof value === 'string') {
             // If the filter value is a string, do a case-insensitive search
             return String(fieldValue).toLowerCase().includes(String(value).toLowerCase());
+          } else if (typeof value === 'number') {
+            // For numeric comparisons
+            if (typeof fieldValue === 'string' && !isNaN(Number(fieldValue))) {
+              return Number(fieldValue) === value;
+            } else {
+              return fieldValue === value;
+            }
           } else {
             // Otherwise, just check for equality
             return fieldValue === value;
