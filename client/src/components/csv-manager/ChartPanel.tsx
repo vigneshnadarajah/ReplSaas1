@@ -156,7 +156,7 @@ const ChartPanel: React.FC<ChartPanelProps> = ({
           className="w-full p-2 bg-[#f5f5f5] border-b border-[#d0d0d0] text-center"
           onClick={() => setIsLocalCollapsed(false)}
         >
-          <i className="fas fa-chart-bar"></i>
+          <BarChart2 size={16} className="mx-auto text-[#167ABC]" />
         </button>
       </div>
     );
@@ -165,9 +165,12 @@ const ChartPanel: React.FC<ChartPanelProps> = ({
   return (
     <div className="w-96 flex-col shrink-0 bg-white border border-[#d0d0d0] rounded-sm overflow-hidden flex">
       <div className="flex justify-between items-center bg-[#f5f5f5] border-b border-[#d0d0d0] p-2 px-4">
-        <span className="font-semibold">Data Visualization</span>
+        <span className="font-semibold flex items-center gap-2">
+          <BarChart2 size={18} className="text-[#167ABC]" />
+          Data Visualization
+        </span>
         <button className="text-neutral-400 hover:text-neutral-500" onClick={() => setIsLocalCollapsed(true)}>
-          <i className="fas fa-minus"></i>
+          <ChevronLeft size={18} />
         </button>
       </div>
       
@@ -189,28 +192,31 @@ const ChartPanel: React.FC<ChartPanelProps> = ({
           <label className="block text-sm font-medium text-neutral-500 mb-1">Chart Type</label>
           <div className="flex gap-2">
             <button 
-              className={`px-3 py-1.5 rounded-sm ${chartType === 'pie' 
+              className={`px-3 py-1.5 rounded-sm flex items-center gap-1 ${chartType === 'pie' 
                 ? 'bg-[#167ABC] text-white' 
                 : 'bg-[#f5f5f5] border border-[#d0d0d0]'}`}
               onClick={() => handleChartTypeChange('pie')}
             >
-              Pie
+              <PieChartIcon size={16} />
+              <span>Pie</span>
             </button>
             <button 
-              className={`px-3 py-1.5 rounded-sm ${chartType === 'bar' 
+              className={`px-3 py-1.5 rounded-sm flex items-center gap-1 ${chartType === 'bar' 
                 ? 'bg-[#167ABC] text-white' 
                 : 'bg-[#f5f5f5] border border-[#d0d0d0]'}`}
               onClick={() => handleChartTypeChange('bar')}
             >
-              Bar
+              <BarChart2 size={16} />
+              <span>Bar</span>
             </button>
             <button 
-              className={`px-3 py-1.5 rounded-sm ${chartType === 'line' 
+              className={`px-3 py-1.5 rounded-sm flex items-center gap-1 ${chartType === 'line' 
                 ? 'bg-[#167ABC] text-white' 
                 : 'bg-[#f5f5f5] border border-[#d0d0d0]'}`}
               onClick={() => handleChartTypeChange('line')}
             >
-              Line
+              <LineChartIcon size={16} />
+              <span>Line</span>
             </button>
           </div>
         </div>
