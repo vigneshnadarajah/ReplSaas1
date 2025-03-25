@@ -8,10 +8,12 @@ export default function Login() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    const userId = document.querySelector('meta[name="replit-user-id"]')?.getAttribute('content');
-    if (userId) {
-      setLocation('/');
-    }
+    // Listen for auth changes
+    window.addEventListener('message', (e) => {
+      if (e.data === 'authed') {
+        setLocation('/');
+      }
+    });
   }, [setLocation]);
 
   return (
