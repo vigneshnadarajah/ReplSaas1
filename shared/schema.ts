@@ -4,8 +4,10 @@ import { z } from "zod";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
+  replitId: text("replit_id").notNull().unique(),
   username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  roles: text("roles").array(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const csvFiles = pgTable("csv_files", {
