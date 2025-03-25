@@ -8,23 +8,10 @@ export default function Login() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    // Check if user is already authenticated
-    const checkAuth = () => {
-      const userId = document.querySelector('meta[name="replit-user-id"]')?.getAttribute('content');
-      if (userId) {
-        setLocation('/');
-      }
-    };
-
-    // Initial check
-    checkAuth();
-
-    // Setup listener for auth changes
-    window.addEventListener('message', (e) => {
-      if (e.data === 'authed') {
-        setLocation('/');
-      }
-    });
+    const userId = document.querySelector('meta[name="replit-user-id"]')?.getAttribute('content');
+    if (userId) {
+      setLocation('/');
+    }
   }, [setLocation]);
 
   return (
