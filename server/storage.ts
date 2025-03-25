@@ -40,6 +40,12 @@ export class MemStorage implements IStorage {
     return this.users.get(id);
   }
 
+  async getUserByReplitId(replitId: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.replitId === replitId,
+    );
+  }
+
   async getUserByUsername(username: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(
       (user) => user.username === username,
@@ -48,7 +54,11 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentUserId++;
-    const user: User = { ...insertUser, id };
+    const user: User = { 
+      ...insertUser, 
+      id,
+      createdAt: new Date()
+    };
     this.users.set(id, user);
     return user;
   }

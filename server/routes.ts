@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { authMiddleware, type AuthRequest } from "./middleware/auth";
 import multer from "multer";
 import fs from "fs";
 import path from "path";
@@ -45,7 +46,7 @@ const upload = multer({
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Handler for uploading CSV file
-  app.post("/api/csv/upload", upload.single("csvFile"), async (req, res) => {
+  app.post("/api/csv/upload", authMiddleware, upload.single("csvFile"), async (req: AuthRequest, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file provided" });
