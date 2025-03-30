@@ -55,7 +55,7 @@ jobs:
     - name: Verify version on release branches
       if: startsWith(github.ref, 'refs/heads/release/')
       run: |
-        BRANCH_VERSION=$(echo ${{ github.ref_name }} | sed 's/release\/v//')
+        BRANCH_VERSION=$(echo "${{ github.ref_name }}" | sed 's/release\/v//')
         FILE_VERSION=$(cat VERSION)
         if [ "$BRANCH_VERSION" != "$FILE_VERSION" ]; then
           echo "Error: Branch version ($BRANCH_VERSION) does not match VERSION file ($FILE_VERSION)"
