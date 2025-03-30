@@ -142,15 +142,50 @@ export const getRecommendedChartType = (fieldName: string, dataType: string): 'p
  * @returns A color code for the status
  */
 export const statusColor = (status: string): string => {
-  const lowerStatus = status.toLowerCase();
+  const lowerStatus = String(status).toLowerCase();
   
-  if (lowerStatus === 'active') {
+  if (lowerStatus.includes('active') || lowerStatus.includes('approved') || lowerStatus.includes('success')) {
     return 'bg-green-100 text-green-800';
-  } else if (lowerStatus === 'inactive') {
+  } else if (lowerStatus.includes('inactive') || lowerStatus.includes('rejected') || lowerStatus.includes('failed')) {
     return 'bg-red-100 text-red-800';
-  } else if (lowerStatus === 'pending') {
+  } else if (lowerStatus.includes('pending') || lowerStatus.includes('review') || lowerStatus.includes('wait')) {
     return 'bg-yellow-100 text-yellow-800';
+  } else if (lowerStatus.includes('draft') || lowerStatus.includes('new')) {
+    return 'bg-blue-100 text-blue-800';
   } else {
     return 'bg-gray-100 text-gray-800';
   }
+};
+
+/**
+ * Identifies status fields in CSV data
+ * @param headers Array of column headers
+ * @returns Array of potential status field names
+ */
+export const identifyStatusFields = (headers: string[]): string[] => {
+  return headers.filter(header => {
+    const lower = header.toLowerCase();
+    return lower.includes('status') || 
+           lower.includes('state') || 
+           lower.includes('condition') || 
+           lower === 'type' ||
+           lower.includes('status');
+  });
+};
+
+/**
+ * Identifies date/time fields in CSV data
+ * @param headers Array of column headers
+ * @returns Array of potential date field names
+ */
+export const identifyDateFields = (headers: string[]): string[] => {
+  return headers.filter(header => {
+    const lower = header.toLowerCase();
+    return lower.includes('date') || 
+           lower.includes('time') || 
+           lower.includes('year') || 
+           lower.includes('created') || 
+           lower.includes('updated') ||
+           lower.includes('timestamp');
+  });
 };
