@@ -123,31 +123,17 @@ const GridPanel: React.FC<GridPanelProps> = ({
       
       <div className="p-3 border-b flex justify-between items-center">
         <div className="flex gap-2">
-          <div className="relative inline-block">
-            <select 
-              className="bg-[#f5f5f5] border border-[#d0d0d0] rounded-sm py-1.5 px-3 pr-8 appearance-none cursor-pointer hover:bg-[#e8e8e8] transition-all duration-200"
-              onChange={(e) => {
-                const fileId = parseInt(e.target.value);
-                const file = files.find(f => f.id === fileId);
-                if (file) onFileSelect(file);
-              }}
-              value={selectedFile?.id || ""}
-            >
-              <option value="" disabled>Select a file</option>
-              {files.map(file => (
-                <option key={file.id} value={file.id}>{file.originalName}</option>
-              ))}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-              <i className="fas fa-chevron-down text-xs"></i>
-            </div>
-          </div>
-          
           <label className="bg-[#f5f5f5] border border-[#d0d0d0] rounded-sm py-1.5 px-3 cursor-pointer flex items-center hover:bg-[#e8e8e8] transition-all duration-200">
             <i className="fas fa-file-upload mr-2"></i>
             Upload CSV
             <input type="file" accept=".csv" className="hidden" onChange={handleFileChange} />
           </label>
+          {selectedFile && (
+            <div className="flex items-center text-neutral-500 text-sm">
+              <i className="fas fa-file-csv mr-2"></i>
+              <span className="font-semibold">{selectedFile.originalName}</span>
+            </div>
+          )}
         </div>
         <div className="flex gap-2">
           <div className="relative">

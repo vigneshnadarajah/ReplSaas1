@@ -9,6 +9,7 @@ import DetailsPanel from "@/components/csv-manager/DetailsPanel";
 import ChartPanel from "@/components/csv-manager/ChartPanel";
 import StatusBar from "@/components/csv-manager/StatusBar";
 import UploadProgressDialog from "@/components/csv-manager/UploadProgressDialog";
+import FileNavBar from "@/components/csv-manager/FileNavBar";
 import { type CsvFile, type CsvData, type CsvRowData } from "@shared/schema";
 
 export default function CSVManager() {
@@ -282,6 +283,15 @@ export default function CSVManager() {
     <div className="flex flex-col h-screen">
       {/* Header */}
       <HeaderPanel />
+      
+      {/* File Navigation Bar */}
+      <div className="px-3 pt-3">
+        <FileNavBar 
+          files={filesQuery.data || []}
+          selectedFile={selectedFile}
+          onFileSelect={handleFileSelect}
+        />
+      </div>
       
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
