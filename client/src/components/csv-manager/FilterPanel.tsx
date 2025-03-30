@@ -26,11 +26,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   const [localFilters, setLocalFilters] = useState<Record<string, any>>({});
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
-  const [statusFilters, setStatusFilters] = useState({
-    active: false,
-    inactive: false,
-    pending: false
-  });
+  const [statusFilters, setStatusFilters] = useState<Record<string, boolean>>({});
   const [selectedFilterColumns, setSelectedFilterColumns] = useState<string[]>([]);
   const [showColumnSelector, setShowColumnSelector] = useState(false);
 
@@ -52,11 +48,14 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
     if (filters.date_to) setToDate(filters.date_to);
     
     // Extract status filters
-    setStatusFilters({
-      active: !!filters.status_active,
-      inactive: !!filters.status_inactive,
-      pending: !!filters.status_pending
+    const newStatusFilters: Record<string, boolean> = {};
+    Object.keys(filters).forEach(key => {
+      if (key.startsWith('status_')) {
+        const statusValue = key.replace('status_', '');
+        newStatusFilters[statusValue] = true;
+      }
     });
+    setStatusFilters(newStatusFilters);
     
   }, [filters]);
   
@@ -98,10 +97,12 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
     if (fromDate) appliedFilters.date_from = fromDate;
     if (toDate) appliedFilters.date_to = toDate;
     
-    // Add status filters - IMPORTANT: Only add if checked
-    if (statusFilters.active) appliedFilters.status_active = true;
-    if (statusFilters.inactive) appliedFilters.status_inactive = true;
-    if (statusFilters.pending) appliedFilters.status_pending = true;
+    // Add all status filters dynamically
+    Object.entries(statusFilters).forEach(([status, isChecked]) => {
+      if (isChecked) {
+        appliedFilters[`status_${status}`] = true;
+      }
+    });
     
     // Log the filters being applied
     console.log("FilterPanel - Applying filters:", appliedFilters);
@@ -113,11 +114,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
     setLocalFilters({});
     setFromDate("");
     setToDate("");
-    setStatusFilters({
-      active: false,
-      inactive: false,
-      pending: false
-    });
+    setStatusFilters({});
     onSearchTermChange("");
     onSearchColumnChange("all");
     onReset();
@@ -256,39 +253,57 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
         </div>
         
         {/* Only show Status filter if it's in the selected columns */}
-        {selectedFilterColumns.includes('Status') && (
+        {selectedFilterColumns.some(col => col.toLowerCase() === 'status' || col.toLowerCase() === 'state' || col.toLowerCase() === 'condition') && (
           <div className="mb-4">
             <label className="block text-sm font-medium text-neutral-500 mb-1">Status</label>
             <div className="space-y-1">
-              <div className="flex items-center">
+              {/* Common statuses - will show by default */}
+              {['active', 'inactive', 'pending'].map(status => (
+                <div className="flex items-center" key={status}>
+                  <input 
+                    type="checkbox" 
+                    id={`status_${status}`} 
+                    className="mr-2"
+                    checked={!!statusFilters[status]}
+                    onChange={() => handleStatusChange(status)}
+                  />
+                  <label htmlFor={`status_${status}`} className="capitalize">{status}</label>
+                </div>
+              ))}
+              
+              {/* Any other status filters that are already applied but not in the common list */}
+              {Object.keys(statusFilters)
+                .filter(status => !['active', 'inactive', 'pending'].includes(status) && statusFilters[status])
+                .map(status => (
+                  <div className="flex items-center" key={status}>
+                    <input 
+                      type="checkbox" 
+                      id={`status_${status}`} 
+                      className="mr-2"
+                      checked={!!statusFilters[status]}
+                      onChange={() => handleStatusChange(status)}
+                    />
+                    <label htmlFor={`status_${status}`} className="capitalize">{status}</label>
+                  </div>
+                ))
+              }
+              
+              {/* Add new status option */}
+              <div className="flex items-center mt-2 pt-2 border-t border-gray-100">
                 <input 
-                  type="checkbox" 
-                  id="status_active" 
-                  className="mr-2"
-                  checked={statusFilters.active}
-                  onChange={() => handleStatusChange('active')}
+                  type="text" 
+                  placeholder="Add custom status..."
+                  className="w-full text-sm border border-neutral-200 p-1 rounded-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const newStatus = e.currentTarget.value.toLowerCase().trim();
+                      if (newStatus) {
+                        handleStatusChange(newStatus);
+                        e.currentTarget.value = '';
+                      }
+                    }
+                  }}
                 />
-                <label htmlFor="status_active">Active</label>
-              </div>
-              <div className="flex items-center">
-                <input 
-                  type="checkbox" 
-                  id="status_inactive" 
-                  className="mr-2"
-                  checked={statusFilters.inactive}
-                  onChange={() => handleStatusChange('inactive')}
-                />
-                <label htmlFor="status_inactive">Inactive</label>
-              </div>
-              <div className="flex items-center">
-                <input 
-                  type="checkbox" 
-                  id="status_pending" 
-                  className="mr-2"
-                  checked={statusFilters.pending}
-                  onChange={() => handleStatusChange('pending')}
-                />
-                <label htmlFor="status_pending">Pending</label>
               </div>
             </div>
           </div>

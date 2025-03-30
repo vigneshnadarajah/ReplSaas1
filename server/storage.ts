@@ -57,7 +57,8 @@ export class MemStorage implements IStorage {
     const user: User = { 
       ...insertUser, 
       id,
-      createdAt: new Date()
+      createdAt: new Date(),
+      roles: insertUser.roles || null
     };
     this.users.set(id, user);
     return user;
@@ -162,34 +163,62 @@ export class MemStorage implements IStorage {
           if (!matches) return false;
         }
         
-        // Handle status filters
-        if (filters.status_active || filters.status_inactive || filters.status_pending) {
-          const status = String(rowData.Status || '').toLowerCase();
+        // Handle dynamic status filters (status_[value])
+        const statusFilters = Object.keys(filters).filter(key => key.startsWith('status_'));
+        if (statusFilters.length > 0) {
+          // Find a status field in rowData - common names like Status, status, state, etc.
+          const statusFieldKeys = Object.keys(rowData).filter(key => 
+            key.toLowerCase() === 'status' || 
+            key.toLowerCase() === 'state' || 
+            key.toLowerCase() === 'condition'
+          );
           
-          // If one of the statuses is checked, at least one needs to match
-          const statusMatches = 
-            (filters.status_active && status === 'active') ||
-            (filters.status_inactive && status === 'inactive') ||
-            (filters.status_pending && status === 'pending');
-          
-          console.log(`Status filtering: ${status}, matches: ${statusMatches}`, filters);
-          
-          if (!statusMatches) return false;
+          if (statusFieldKeys.length > 0) {
+            const statusField = statusFieldKeys[0]; // Use the first matching status field
+            const status = String(rowData[statusField] || '').toLowerCase();
+            
+            // Check if any status filter matches
+            const statusValues = statusFilters.map(filter => filter.replace('status_', ''));
+            const statusMatches = statusValues.some(val => status === val);
+            
+            if (statusFilters.length > 0 && !statusMatches) return false;
+          }
         }
         
-        // Handle date range filters
+        // Handle date range filters more generically
         if (filters.date_from || filters.date_to) {
-          // Assuming Year is the date field for vehicle data
-          const year = parseInt(String(rowData.Year), 10);
+          // Try to find a date field in the data
+          const potentialDateFields = Object.keys(rowData).filter(key => {
+            const val = String(rowData[key] || '');
+            // Look for fields that could be dates or years
+            return (
+              key.toLowerCase().includes('date') || 
+              key.toLowerCase().includes('year') || 
+              key.toLowerCase() === 'created' || 
+              key.toLowerCase().includes('timestamp') ||
+              (val.length === 4 && /^\d{4}$/.test(val)) // Looks like a year
+            );
+          });
           
-          if (filters.date_from) {
-            const fromYear = parseInt(filters.date_from, 10);
-            if (!isNaN(fromYear) && year < fromYear) return false;
-          }
-          
-          if (filters.date_to) {
-            const toYear = parseInt(filters.date_to, 10);
-            if (!isNaN(toYear) && year > toYear) return false;
+          if (potentialDateFields.length > 0) {
+            const dateField = potentialDateFields[0]; // Use first potential date field
+            const dateValue = rowData[dateField];
+            
+            // Handle year value
+            if (typeof dateValue === 'string' && /^\d{4}$/.test(dateValue)) {
+              const year = parseInt(dateValue, 10);
+              
+              if (filters.date_from) {
+                const fromYear = parseInt(filters.date_from, 10);
+                if (!isNaN(fromYear) && year < fromYear) return false;
+              }
+              
+              if (filters.date_to) {
+                const toYear = parseInt(filters.date_to, 10);
+                if (!isNaN(toYear) && year > toYear) return false;
+              }
+            }
+            // You could add more date formats here if needed
           }
         }
         
@@ -207,8 +236,6 @@ export class MemStorage implements IStorage {
           
           const fieldValue = rowData[field];
           if (fieldValue === undefined) return true; // Skip if field doesn't exist
-          
-          console.log(`Field filter: ${field}=${value}, type: ${typeof value}, fieldValue: ${fieldValue}`);
           
           if (Array.isArray(value)) {
             // If the filter value is an array, check if the field value is in the array

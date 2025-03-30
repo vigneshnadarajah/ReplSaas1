@@ -27,7 +27,8 @@ export const csvData = pgTable("csv_data", {
 
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
-  password: true,
+  replitId: true,
+  roles: true,
 });
 
 export const insertCsvFileSchema = createInsertSchema(csvFiles).pick({
