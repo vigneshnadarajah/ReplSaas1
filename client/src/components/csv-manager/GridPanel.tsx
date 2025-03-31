@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { type CsvFile, type CsvData, type CsvRowData } from "@shared/schema";
+import { ChevronLeft, ChevronDown } from 'lucide-react';
 
 interface Pagination {
   page: number;
@@ -23,6 +24,8 @@ interface GridPanelProps {
   onExport: (format: string) => void;
   onQuickSearch: (term: string) => void;
   isLoading: boolean;
+  isCollapsed?: boolean;
+  onToggleCollapse?: (collapsed: boolean) => void;
 }
 
 const GridPanel: React.FC<GridPanelProps> = ({
@@ -39,12 +42,23 @@ const GridPanel: React.FC<GridPanelProps> = ({
   onFileUpload,
   onExport,
   onQuickSearch,
-  isLoading
+  isLoading,
+  isCollapsed: propsIsCollapsed = false,
+  onToggleCollapse
 }) => {
+  const [isLocalCollapsed, setIsLocalCollapsed] = useState(propsIsCollapsed);
   const [quickSearchTerm, setQuickSearchTerm] = useState("");
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  
+  // Update parent component when local collapse state changes
+  const toggleCollapse = (newState: boolean) => {
+    setIsLocalCollapsed(newState);
+    if (onToggleCollapse) {
+      onToggleCollapse(newState);
+    }
+  };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
@@ -90,286 +104,305 @@ const GridPanel: React.FC<GridPanelProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-white border border-[#d0d0d0] rounded-sm overflow-hidden">
+    <div className={`flex flex-col bg-white border border-[#d0d0d0] rounded-sm overflow-hidden ${isLocalCollapsed ? 'w-[50px]' : 'flex-1'}`}>
       <div className="flex justify-between items-center bg-[#f5f5f5] border-b border-[#d0d0d0] p-2 px-3">
-        <div className="flex items-center">
+        <div className={`flex items-center ${isLocalCollapsed ? 'hidden' : ''}`}>
           <span className="font-semibold">CSV Data</span>
           <span className="ml-2 text-xs text-neutral-400">{pagination.total} records</span>
         </div>
-        <div className="flex items-center gap-2">
-          <form onSubmit={handleQuickSearchSubmit}>
-            <input 
-              type="text" 
-              placeholder="Quick search..." 
-              className="border border-neutral-200 p-1 text-sm rounded-sm" 
-              style={{ width: '150px' }}
-              value={quickSearchTerm}
-              onChange={handleQuickSearchChange}
-            />
-          </form>
-          <button 
-            className="bg-[#f5f5f5] border border-[#d0d0d0] rounded-sm py-1 px-2 text-sm flex items-center hover:bg-[#e8e8e8] transition-all duration-200"
-            onClick={() => {
-              if (selectedFile) {
-                onFileSelect(selectedFile); // Reload data
-              }
-            }}
-          >
-            <i className="fas fa-sync-alt mr-1"></i>
-            Refresh
-          </button>
-        </div>
-      </div>
-      
-      <div className="p-3 border-b flex justify-between items-center">
-        <div className="flex gap-2">
-          <label className="bg-[#f5f5f5] border border-[#d0d0d0] rounded-sm py-1.5 px-3 cursor-pointer flex items-center hover:bg-[#e8e8e8] transition-all duration-200">
-            <i className="fas fa-file-upload mr-2"></i>
-            Upload CSV
-            <input type="file" accept=".csv" className="hidden" onChange={handleFileChange} />
-          </label>
-          {selectedFile && (
-            <div className="flex items-center text-neutral-500 text-sm">
-              <i className="fas fa-file-csv mr-2"></i>
-              <span className="font-semibold">{selectedFile.originalName}</span>
-            </div>
+        <div className="flex items-center gap-2 ml-auto">
+          {!isLocalCollapsed && (
+            <>
+              <form onSubmit={handleQuickSearchSubmit}>
+                <input 
+                  type="text" 
+                  placeholder="Quick search..." 
+                  className="border border-neutral-200 p-1 text-sm rounded-sm" 
+                  style={{ width: '150px' }}
+                  value={quickSearchTerm}
+                  onChange={handleQuickSearchChange}
+                />
+              </form>
+              <button 
+                className="bg-[#f5f5f5] border border-[#d0d0d0] rounded-sm py-1 px-2 text-sm flex items-center hover:bg-[#e8e8e8] transition-all duration-200"
+                onClick={() => {
+                  if (selectedFile) {
+                    onFileSelect(selectedFile); // Reload data
+                  }
+                }}
+              >
+                <i className="fas fa-sync-alt mr-1"></i>
+                Refresh
+              </button>
+            </>
           )}
-        </div>
-        <div className="flex gap-2">
-          <div className="relative">
-            <button 
-              className="bg-[#f5f5f5] border border-[#d0d0d0] rounded-sm py-1.5 px-3 flex items-center hover:bg-[#e8e8e8] transition-all duration-200"
-              onClick={toggleExportMenu}
-              disabled={!selectedFile}
-            >
-              <i className="fas fa-file-export mr-2"></i>
-              Export
-              <i className="fas fa-chevron-down ml-2 text-xs"></i>
-            </button>
-            {showExportMenu && (
-              <div className="absolute right-0 mt-1 w-40 bg-white shadow-lg z-10 border border-neutral-200 rounded-sm">
-                <button 
-                  className="block px-4 py-2 hover:bg-neutral-100 text-sm w-full text-left"
-                  onClick={() => handleExport('csv')}
-                >
-                  <i className="fas fa-file-csv mr-2"></i> Export as CSV
-                </button>
-                <button 
-                  className="block px-4 py-2 hover:bg-neutral-100 text-sm w-full text-left"
-                  onClick={() => handleExport('json')}
-                >
-                  <i className="fas fa-file-code mr-2"></i> Export as JSON
-                </button>
-              </div>
-            )}
-          </div>
-          <button 
-            className="bg-[#f5f5f5] border border-[#d0d0d0] rounded-sm py-1.5 px-3 flex items-center hover:bg-[#e8e8e8] transition-all duration-200"
-            disabled={!selectedFile}
+          <button
+            className="ml-1 p-1 rounded-sm border border-[#d0d0d0] hover:bg-[#e8e8e8]"
+            onClick={() => toggleCollapse(!isLocalCollapsed)}
+            title={isLocalCollapsed ? "Expand" : "Collapse"}
           >
-            <i className="fas fa-cog mr-2"></i>
-            Columns
+            {isLocalCollapsed ? (
+              <ChevronDown size={16} />
+            ) : (
+              <ChevronLeft size={16} />
+            )}
           </button>
         </div>
       </div>
       
-      <div className="flex-1 overflow-auto">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#167ABC]"></div>
-          </div>
-        ) : selectedFile ? (
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-[#f5f5f5] border-b border-[#d0d0d0]">
-                <th className="px-4 py-2 text-left font-semibold text-sm">ID</th>
-                {headers.map((header) => (
-                  <th key={header} className="px-4 py-2 text-left font-semibold text-sm">
-                    <div 
-                      className="flex items-center cursor-pointer"
-                      onClick={() => handleSort(header)}
+      {!isLocalCollapsed && (
+        <>
+          <div className="p-3 border-b flex justify-between items-center">
+            <div className="flex gap-2">
+              <label className="bg-[#f5f5f5] border border-[#d0d0d0] rounded-sm py-1.5 px-3 cursor-pointer flex items-center hover:bg-[#e8e8e8] transition-all duration-200">
+                <i className="fas fa-file-upload mr-2"></i>
+                Upload CSV
+                <input type="file" accept=".csv" className="hidden" onChange={handleFileChange} />
+              </label>
+              {selectedFile && (
+                <div className="flex items-center text-neutral-500 text-sm">
+                  <i className="fas fa-file-csv mr-2"></i>
+                  <span className="font-semibold">{selectedFile.originalName}</span>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <div className="relative">
+                <button 
+                  className="bg-[#f5f5f5] border border-[#d0d0d0] rounded-sm py-1.5 px-3 flex items-center hover:bg-[#e8e8e8] transition-all duration-200"
+                  onClick={toggleExportMenu}
+                  disabled={!selectedFile}
+                >
+                  <i className="fas fa-file-export mr-2"></i>
+                  Export
+                  <i className="fas fa-chevron-down ml-2 text-xs"></i>
+                </button>
+                {showExportMenu && (
+                  <div className="absolute right-0 mt-1 w-40 bg-white shadow-lg z-10 border border-neutral-200 rounded-sm">
+                    <button 
+                      className="block px-4 py-2 hover:bg-neutral-100 text-sm w-full text-left"
+                      onClick={() => handleExport('csv')}
                     >
-                      {header}
-                      {sortField === header ? (
-                        <i className={`fas fa-sort-${sortDirection === 'asc' ? 'up' : 'down'} ml-1 text-xs`}></i>
-                      ) : (
-                        <i className="fas fa-sort ml-1 text-xs text-neutral-400"></i>
-                      )}
-                    </div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {/* Apply sorting to data if sortField is set */}
-              {data
-                .slice()
-                .sort((a, b) => {
-                  if (!sortField) return 0;
-                  
-                  // Get cell values, handling potential BOM characters
-                  const aRowData = a.rowData as CsvRowData;
-                  const bRowData = b.rowData as CsvRowData;
-                  
-                  // Clean header name if it has BOM character
-                  const cleanSortField = sortField.replace(/^\ufeff/, '');
-                  
-                  // Try to get values with all possible key variations
-                  let aValue = aRowData[sortField];
-                  let bValue = bRowData[sortField];
-                  
-                  // Try clean version if original key doesn't exist
-                  if (aValue === undefined && sortField !== cleanSortField) {
-                    aValue = aRowData[cleanSortField];
-                  }
-                  
-                  if (bValue === undefined && sortField !== cleanSortField) {
-                    bValue = bRowData[cleanSortField];
-                  }
-                  
-                  // Try to find key with BOM character that matches when cleaned
-                  if (aValue === undefined) {
-                    const aMatchingKey = Object.keys(aRowData).find(key => 
-                      key.replace(/^\ufeff/, '') === cleanSortField
-                    );
-                    if (aMatchingKey) {
-                      aValue = aRowData[aMatchingKey];
-                    }
-                  }
-                  
-                  if (bValue === undefined) {
-                    const bMatchingKey = Object.keys(bRowData).find(key => 
-                      key.replace(/^\ufeff/, '') === cleanSortField
-                    );
-                    if (bMatchingKey) {
-                      bValue = bRowData[bMatchingKey];
-                    }
-                  }
-                  
-                  // Handle undefined or null values
-                  if (aValue === undefined && bValue === undefined) return 0;
-                  if (aValue === undefined) return sortDirection === 'asc' ? 1 : -1;
-                  if (bValue === undefined) return sortDirection === 'asc' ? -1 : 1;
-                  
-                  // Sort numerically if both values are numbers
-                  if (!isNaN(Number(aValue)) && !isNaN(Number(bValue))) {
-                    return sortDirection === 'asc' 
-                      ? Number(aValue) - Number(bValue) 
-                      : Number(bValue) - Number(aValue);
-                  }
-                  
-                  // Otherwise sort alphabetically
-                  const aStr = String(aValue).toLowerCase();
-                  const bStr = String(bValue).toLowerCase();
-                  
-                  return sortDirection === 'asc' 
-                    ? aStr.localeCompare(bStr) 
-                    : bStr.localeCompare(aStr);
-                })
-                .map((item, index) => {
-                const rowData = item.rowData as CsvRowData;
-                return (
-                  <tr 
-                    key={item.id}
-                    className={`border-b hover:bg-[#f5f5f5] cursor-pointer ${selectedRecord?.id === item.id ? 'bg-[#e8f5fe]' : ''}`}
-                    onClick={() => onRecordSelect(item)}
-                  >
-                    <td className="px-4 py-2 text-sm">{item.id}</td>
-                    {headers.map((header) => {
-                      // Handle the case where header may have BOM character
-                      const cleanHeader = header.replace(/^\ufeff/, '');
-                      // Try to get the value using both the original and cleaned header
-                      let cellValue = rowData[header];
+                      <i className="fas fa-file-csv mr-2"></i> Export as CSV
+                    </button>
+                    <button 
+                      className="block px-4 py-2 hover:bg-neutral-100 text-sm w-full text-left"
+                      onClick={() => handleExport('json')}
+                    >
+                      <i className="fas fa-file-code mr-2"></i> Export as JSON
+                    </button>
+                  </div>
+                )}
+              </div>
+              <button 
+                className="bg-[#f5f5f5] border border-[#d0d0d0] rounded-sm py-1.5 px-3 flex items-center hover:bg-[#e8e8e8] transition-all duration-200"
+                disabled={!selectedFile}
+              >
+                <i className="fas fa-cog mr-2"></i>
+                Columns
+              </button>
+            </div>
+          </div>
+          
+          <div className="flex-1 overflow-auto">
+            {isLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#167ABC]"></div>
+              </div>
+            ) : selectedFile ? (
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-[#f5f5f5] border-b border-[#d0d0d0]">
+                    <th className="px-4 py-2 text-left font-semibold text-sm">ID</th>
+                    {headers.map((header) => (
+                      <th key={header} className="px-4 py-2 text-left font-semibold text-sm">
+                        <div 
+                          className="flex items-center cursor-pointer"
+                          onClick={() => handleSort(header)}
+                        >
+                          {header}
+                          {sortField === header ? (
+                            <i className={`fas fa-sort-${sortDirection === 'asc' ? 'up' : 'down'} ml-1 text-xs`}></i>
+                          ) : (
+                            <i className="fas fa-sort ml-1 text-xs text-neutral-400"></i>
+                          )}
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* Apply sorting to data if sortField is set */}
+                  {data
+                    .slice()
+                    .sort((a, b) => {
+                      if (!sortField) return 0;
                       
-                      // If value is undefined, try with the clean header name
-                      if (cellValue === undefined && header !== cleanHeader) {
-                        cellValue = rowData[cleanHeader];
+                      // Get cell values, handling potential BOM characters
+                      const aRowData = a.rowData as CsvRowData;
+                      const bRowData = b.rowData as CsvRowData;
+                      
+                      // Clean header name if it has BOM character
+                      const cleanSortField = sortField.replace(/^\ufeff/, '');
+                      
+                      // Try to get values with all possible key variations
+                      let aValue = aRowData[sortField];
+                      let bValue = bRowData[sortField];
+                      
+                      // Try clean version if original key doesn't exist
+                      if (aValue === undefined && sortField !== cleanSortField) {
+                        aValue = aRowData[cleanSortField];
                       }
                       
-                      // If still undefined, check if there's a key with BOM character
-                      if (cellValue === undefined) {
-                        // Look for keys with BOM character that match when cleaned
-                        const matchingKey = Object.keys(rowData).find(key => 
-                          key.replace(/^\ufeff/, '') === cleanHeader
+                      if (bValue === undefined && sortField !== cleanSortField) {
+                        bValue = bRowData[cleanSortField];
+                      }
+                      
+                      // Try to find key with BOM character that matches when cleaned
+                      if (aValue === undefined) {
+                        const aMatchingKey = Object.keys(aRowData).find(key => 
+                          key.replace(/^\ufeff/, '') === cleanSortField
                         );
-                        if (matchingKey) {
-                          cellValue = rowData[matchingKey];
+                        if (aMatchingKey) {
+                          aValue = aRowData[aMatchingKey];
                         }
                       }
                       
-                      return header.toLowerCase().includes('status') || 
-                             cleanHeader.toLowerCase().includes('status') ? (
-                        <td className="px-4 py-2 text-sm" key={header}>
-                          <span className={`px-2 py-1 rounded-full text-xs ${statusColor(String(cellValue || ''))}`}>
-                            {cellValue || ''}
-                          </span>
-                        </td>
-                      ) : (
-                        <td className="px-4 py-2 text-sm" key={header}>
-                          {cellValue !== undefined ? cellValue : ''}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
-              {data.length === 0 && (
-                <tr>
-                  <td colSpan={headers.length + 1} className="px-4 py-8 text-center text-gray-500">
-                    {selectedFile ? "No data found" : "Please select or upload a CSV file"}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full p-8">
-            <i className="fas fa-file-csv text-4xl text-gray-400 mb-4"></i>
-            <h3 className="font-medium text-lg mb-2">No CSV File Selected</h3>
-            <p className="text-gray-500 text-center mb-4">Upload a CSV file or select an existing one to view data</p>
-            <label className="bg-[#167ABC] text-white border border-[#0d5a9b] rounded-sm py-2 px-4 cursor-pointer flex items-center hover:bg-[#0d5a9b] transition-all duration-200">
-              <i className="fas fa-file-upload mr-2"></i>
-              Upload CSV
-              <input type="file" accept=".csv" className="hidden" onChange={handleFileChange} />
-            </label>
+                      if (bValue === undefined) {
+                        const bMatchingKey = Object.keys(bRowData).find(key => 
+                          key.replace(/^\ufeff/, '') === cleanSortField
+                        );
+                        if (bMatchingKey) {
+                          bValue = bRowData[bMatchingKey];
+                        }
+                      }
+                      
+                      // Handle undefined or null values
+                      if (aValue === undefined && bValue === undefined) return 0;
+                      if (aValue === undefined) return sortDirection === 'asc' ? 1 : -1;
+                      if (bValue === undefined) return sortDirection === 'asc' ? -1 : 1;
+                      
+                      // Sort numerically if both values are numbers
+                      if (!isNaN(Number(aValue)) && !isNaN(Number(bValue))) {
+                        return sortDirection === 'asc' 
+                          ? Number(aValue) - Number(bValue) 
+                          : Number(bValue) - Number(aValue);
+                      }
+                      
+                      // Otherwise sort alphabetically
+                      const aStr = String(aValue).toLowerCase();
+                      const bStr = String(bValue).toLowerCase();
+                      
+                      return sortDirection === 'asc' 
+                        ? aStr.localeCompare(bStr) 
+                        : bStr.localeCompare(aStr);
+                    })
+                    .map((item, index) => {
+                    const rowData = item.rowData as CsvRowData;
+                    return (
+                      <tr 
+                        key={item.id}
+                        className={`border-b hover:bg-[#f5f5f5] cursor-pointer ${selectedRecord?.id === item.id ? 'bg-[#e8f5fe]' : ''}`}
+                        onClick={() => onRecordSelect(item)}
+                      >
+                        <td className="px-4 py-2 text-sm">{item.id}</td>
+                        {headers.map((header) => {
+                          // Handle the case where header may have BOM character
+                          const cleanHeader = header.replace(/^\ufeff/, '');
+                          // Try to get the value using both the original and cleaned header
+                          let cellValue = rowData[header];
+                          
+                          // If value is undefined, try with the clean header name
+                          if (cellValue === undefined && header !== cleanHeader) {
+                            cellValue = rowData[cleanHeader];
+                          }
+                          
+                          // If still undefined, check if there's a key with BOM character
+                          if (cellValue === undefined) {
+                            // Look for keys with BOM character that match when cleaned
+                            const matchingKey = Object.keys(rowData).find(key => 
+                              key.replace(/^\ufeff/, '') === cleanHeader
+                            );
+                            if (matchingKey) {
+                              cellValue = rowData[matchingKey];
+                            }
+                          }
+                          
+                          return header.toLowerCase().includes('status') || 
+                                cleanHeader.toLowerCase().includes('status') ? (
+                            <td className="px-4 py-2 text-sm" key={header}>
+                              <span className={`px-2 py-1 rounded-full text-xs ${statusColor(String(cellValue || ''))}`}>
+                                {cellValue || ''}
+                              </span>
+                            </td>
+                          ) : (
+                            <td className="px-4 py-2 text-sm" key={header}>
+                              {cellValue !== undefined ? cellValue : ''}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                  {data.length === 0 && (
+                    <tr>
+                      <td colSpan={headers.length + 1} className="px-4 py-8 text-center text-gray-500">
+                        {selectedFile ? "No data found" : "Please select or upload a CSV file"}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full p-8">
+                <i className="fas fa-file-csv text-4xl text-gray-400 mb-4"></i>
+                <h3 className="font-medium text-lg mb-2">No CSV File Selected</h3>
+                <p className="text-gray-500 text-center mb-4">Upload a CSV file or select an existing one to view data</p>
+                <label className="bg-[#167ABC] text-white border border-[#0d5a9b] rounded-sm py-2 px-4 cursor-pointer flex items-center hover:bg-[#0d5a9b] transition-all duration-200">
+                  <i className="fas fa-file-upload mr-2"></i>
+                  Upload CSV
+                  <input type="file" accept=".csv" className="hidden" onChange={handleFileChange} />
+                </label>
+              </div>
+            )}
           </div>
-        )}
-      </div>
-      
-      {selectedFile && (
-        <div className="p-3 border-t flex justify-between items-center">
-          <div className="text-sm text-neutral-500">
-            Showing {pagination.total > 0 ? (pagination.page - 1) * pagination.limit + 1 : 0}-
-            {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} records
-          </div>
-          <div className="flex items-center">
-            <button 
-              className="bg-[#f5f5f5] border border-[#d0d0d0] rounded-sm px-2 py-1 disabled:opacity-50"
-              disabled={pagination.page <= 1}
-              onClick={() => onPageChange(pagination.page - 1)}
-            >
-              <i className="fas fa-chevron-left"></i>
-            </button>
-            <span className="px-2">Page {pagination.page} of {pagination.totalPages || 1}</span>
-            <button 
-              className="bg-[#f5f5f5] border border-[#d0d0d0] rounded-sm px-2 py-1 disabled:opacity-50"
-              disabled={pagination.page >= pagination.totalPages}
-              onClick={() => onPageChange(pagination.page + 1)}
-            >
-              <i className="fas fa-chevron-right"></i>
-            </button>
-            <select 
-              className="bg-[#f5f5f5] border border-[#d0d0d0] rounded-sm ml-2 py-1 px-2"
-              value={pagination.limit}
-              onChange={(e) => onPerPageChange(Number(e.target.value))}
-            >
-              <option value="5">5 per page</option>
-              <option value="10">10 per page</option>
-              <option value="25">25 per page</option>
-              <option value="50">50 per page</option>
-            </select>
-          </div>
-        </div>
+          
+          {selectedFile && (
+            <div className="p-3 border-t flex justify-between items-center">
+              <div className="text-sm text-neutral-500">
+                Showing {pagination.total > 0 ? (pagination.page - 1) * pagination.limit + 1 : 0}-
+                {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} records
+              </div>
+              <div className="flex items-center">
+                <button 
+                  className="bg-[#f5f5f5] border border-[#d0d0d0] rounded-sm px-2 py-1 disabled:opacity-50"
+                  disabled={pagination.page <= 1}
+                  onClick={() => onPageChange(pagination.page - 1)}
+                >
+                  <i className="fas fa-chevron-left"></i>
+                </button>
+                <span className="px-2">Page {pagination.page} of {pagination.totalPages || 1}</span>
+                <button 
+                  className="bg-[#f5f5f5] border border-[#d0d0d0] rounded-sm px-2 py-1 disabled:opacity-50"
+                  disabled={pagination.page >= pagination.totalPages}
+                  onClick={() => onPageChange(pagination.page + 1)}
+                >
+                  <i className="fas fa-chevron-right"></i>
+                </button>
+                <select 
+                  className="bg-[#f5f5f5] border border-[#d0d0d0] rounded-sm ml-2 py-1 px-2"
+                  value={pagination.limit}
+                  onChange={(e) => onPerPageChange(Number(e.target.value))}
+                >
+                  <option value="5">5 per page</option>
+                  <option value="10">10 per page</option>
+                  <option value="25">25 per page</option>
+                  <option value="50">50 per page</option>
+                </select>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
