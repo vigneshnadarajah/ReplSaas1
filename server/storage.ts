@@ -237,9 +237,32 @@ export class MemStorage implements IStorage {
           
           if (value === null || value === undefined || value === '') return true; // Skip empty filters
           
-          const fieldValue = rowData[field];
-          if (fieldValue === undefined) return true; // Skip if field doesn't exist
+          // Clean field name from BOM character if present
+          const cleanField = field.replace(/^\ufeff/, '');
           
+          // Try to find the field value, accounting for potential BOM character in the field name
+          let fieldValue = rowData[field];
+          
+          // If field not found directly, try the clean version
+          if (fieldValue === undefined && field !== cleanField) {
+            fieldValue = rowData[cleanField];
+          }
+          
+          // If still not found, look for fields that match when BOM is removed
+          if (fieldValue === undefined) {
+            const possibleKey = Object.keys(rowData).find(key => 
+              key.replace(/^\ufeff/, '') === cleanField || 
+              key === '\ufeff' + cleanField
+            );
+            
+            if (possibleKey) {
+              fieldValue = rowData[possibleKey];
+            } else {
+              return true; // Skip if field doesn't exist at all
+            }
+          }
+          
+          // Now apply the filter logic
           if (Array.isArray(value)) {
             // If the filter value is an array, check if the field value is in the array
             return value.includes(fieldValue);

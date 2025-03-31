@@ -40,8 +40,15 @@ export default function CSVManager() {
 
   // Query for CSV data based on selected file
   const dataQuery = useQuery<{data: CsvData[], pagination: {page: number, limit: number, total: number, totalPages: number}}>({
-    queryKey: [`/api/csv/data/${selectedFile?.id}`, currentPage, perPage, JSON.stringify(filters)],
-    enabled: !!selectedFile,
+    queryKey: [`/api/csv/data/${selectedFile?.id}`, currentPage, perPage],
+    queryFn: async () => {
+      const response = await apiRequest(
+        "GET", 
+        `/api/csv/data/${selectedFile?.id}?page=${currentPage}&limit=${perPage}`
+      );
+      return response.json();
+    },
+    enabled: !!selectedFile && Object.keys(filters).length === 0,
     refetchInterval: false,
     refetchOnWindowFocus: false
   });
@@ -126,21 +133,23 @@ export default function CSVManager() {
     },
   });
 
-  // When fileId or filters change, refresh data
+  // When fileId or filters or pagination parameters change, refresh data
   useEffect(() => {
     if (selectedFile) {
       if (Object.keys(filters).length > 0) {
-        console.log("Applying filters:", filters);
-        filterMutation.mutate({
-          fileId: selectedFile.id,
-          filters,
-        });
-      } else {
-        // If no filters, fetch unfiltered data
-        dataQuery.refetch();
+        console.log("Applying filters:", filters, "Page:", currentPage, "Limit:", perPage);
+        // Only trigger if it's not already fetching
+        if (!filterMutation.isPending) {
+          filterMutation.mutate({
+            fileId: selectedFile.id,
+            filters,
+          });
+        }
       }
+      // We don't need to manually refetch dataQuery since the URL includes page and perPage
+      // and the query function is defined with those parameters
     }
-  }, [selectedFile?.id, filters, currentPage, perPage]);
+  }, [selectedFile?.id, filters]);
 
   // Handle file upload
   const handleFileUpload = (file: File) => {
@@ -168,12 +177,28 @@ export default function CSVManager() {
   // Handle page change
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+    
+    // If filters are applied, we need to refresh the filter results with the new page
+    if (selectedFile && Object.keys(filters).length > 0) {
+      filterMutation.mutate({
+        fileId: selectedFile.id,
+        filters,
+      });
+    }
   };
 
   // Handle per page change
   const handlePerPageChange = (limit: number) => {
     setPerPage(limit);
     setCurrentPage(1);
+    
+    // If filters are applied, we need to refresh the filter results with the new limit
+    if (selectedFile && Object.keys(filters).length > 0) {
+      filterMutation.mutate({
+        fileId: selectedFile.id,
+        filters,
+      });
+    }
   };
 
   // Handle filter apply
