@@ -220,7 +220,11 @@ const GridPanel: React.FC<GridPanelProps> = ({
                           className="flex items-center cursor-pointer"
                           onClick={() => handleSort(header)}
                         >
-                          {header}
+                          {header.replace(/\w\S*/g, (txt) => {
+                            // Format header text in proper case
+                            const cleanHeader = txt.replace(/^\ufeff/, ''); // Remove BOM if present
+                            return cleanHeader.charAt(0).toUpperCase() + cleanHeader.slice(1).toLowerCase();
+                          })}
                           {sortField === header ? (
                             <i className={`fas fa-sort-${sortDirection === 'asc' ? 'up' : 'down'} ml-1 text-xs`}></i>
                           ) : (
