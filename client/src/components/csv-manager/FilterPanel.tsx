@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Filter, ChevronLeft, ChevronDown, Check, X } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Filter, ChevronLeft, ChevronDown, Check, X, Loader } from 'lucide-react';
 
 interface FilterPanelProps {
   headers: string[];
@@ -10,6 +10,7 @@ interface FilterPanelProps {
   onSearchTermChange: (term: string) => void;
   searchColumn: string;
   onSearchColumnChange: (column: string) => void;
+  fileId?: number; // Optional file ID to fetch unique column values
 }
 
 const FilterPanel: React.FC<FilterPanelProps> = ({
@@ -20,7 +21,8 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   searchTerm,
   onSearchTermChange,
   searchColumn,
-  onSearchColumnChange
+  onSearchColumnChange,
+  fileId
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [localFilters, setLocalFilters] = useState<Record<string, any>>({});
@@ -29,6 +31,10 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   const [statusFilters, setStatusFilters] = useState<Record<string, boolean>>({});
   const [selectedFilterColumns, setSelectedFilterColumns] = useState<string[]>([]);
   const [showColumnSelector, setShowColumnSelector] = useState(false);
+  
+  // Column values state
+  const [columnValues, setColumnValues] = useState<Record<string, string[]>>({});
+  const [loadingColumns, setLoadingColumns] = useState<Record<string, boolean>>({});
 
   // Initialize local filters from props
   useEffect(() => {
@@ -149,6 +155,51 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
       setSelectedFilterColumns([]);
     }
   };
+  
+  // Function to fetch unique column values
+  const fetchColumnValues = useCallback(async (column: string) => {
+    if (!fileId || !column) return;
+    
+    // Skip fetching if we already have values for this column
+    if (columnValues[column] && columnValues[column].length > 0) return;
+    
+    // Set loading state for this column
+    setLoadingColumns(prev => ({ ...prev, [column]: true }));
+    
+    try {
+      // Clean the column name to remove any BOM characters
+      const cleanColumn = column.replace(/^\ufeff/, '');
+      const encodedColumn = encodeURIComponent(cleanColumn);
+      
+      const response = await fetch(`/api/csv/column-values/${fileId}/${encodedColumn}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch column values: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      // Update column values
+      setColumnValues(prev => ({
+        ...prev,
+        [column]: data.values || []
+      }));
+    } catch (error) {
+      console.error(`Error fetching values for column ${column}:`, error);
+    } finally {
+      // Clear loading state
+      setLoadingColumns(prev => ({ ...prev, [column]: false }));
+    }
+  }, [fileId, columnValues]);
+  
+  // Effect to fetch column values when a column is selected or file changes
+  useEffect(() => {
+    if (!fileId) return;
+    
+    // For each selected filter column, fetch values if not already fetched
+    selectedFilterColumns.forEach(column => {
+      fetchColumnValues(column);
+    });
+  }, [fileId, selectedFilterColumns, fetchColumnValues]);
 
   if (isCollapsed) {
     return (
@@ -256,55 +307,116 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
         {selectedFilterColumns.some(col => col.toLowerCase() === 'status' || col.toLowerCase() === 'state' || col.toLowerCase() === 'condition') && (
           <div className="mb-4">
             <label className="block text-sm font-medium text-neutral-500 mb-1">Status</label>
-            <div className="space-y-1">
-              {/* Common statuses - will show by default */}
-              {['active', 'inactive', 'pending'].map(status => (
-                <div className="flex items-center" key={status}>
-                  <input 
-                    type="checkbox" 
-                    id={`status_${status}`} 
-                    className="mr-2"
-                    checked={!!statusFilters[status]}
-                    onChange={() => handleStatusChange(status)}
-                  />
-                  <label htmlFor={`status_${status}`} className="capitalize">{status}</label>
-                </div>
-              ))}
-              
-              {/* Any other status filters that are already applied but not in the common list */}
-              {Object.keys(statusFilters)
-                .filter(status => !['active', 'inactive', 'pending'].includes(status) && statusFilters[status])
-                .map(status => (
-                  <div className="flex items-center" key={status}>
-                    <input 
-                      type="checkbox" 
-                      id={`status_${status}`} 
-                      className="mr-2"
-                      checked={!!statusFilters[status]}
-                      onChange={() => handleStatusChange(status)}
-                    />
-                    <label htmlFor={`status_${status}`} className="capitalize">{status}</label>
-                  </div>
-                ))
-              }
-              
-              {/* Add new status option */}
-              <div className="flex items-center mt-2 pt-2 border-t border-gray-100">
-                <input 
-                  type="text" 
-                  placeholder="Add custom status..."
-                  className="w-full text-sm border border-neutral-200 p-1 rounded-sm"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const newStatus = e.currentTarget.value.toLowerCase().trim();
-                      if (newStatus) {
-                        handleStatusChange(newStatus);
-                        e.currentTarget.value = '';
-                      }
+            <div className="relative">
+              {/* Find the status column name */}
+              {(() => {
+                const statusColumn = headers.find(h => 
+                  h.toLowerCase() === 'status' || 
+                  h.toLowerCase() === 'state' || 
+                  h.toLowerCase() === 'condition'
+                );
+                
+                if (statusColumn && loadingColumns[statusColumn]) {
+                  return (
+                    <div className="flex items-center justify-center py-2 text-neutral-500">
+                      <Loader size={16} className="animate-spin mr-2" />
+                      <span className="text-sm">Loading status values...</span>
+                    </div>
+                  );
+                }
+                
+                // Use unique status values if available, otherwise use default ones
+                if (statusColumn && columnValues[statusColumn] && columnValues[statusColumn].length > 0) {
+                  return (
+                    <div className="space-y-1">
+                      {columnValues[statusColumn].map(status => (
+                        <div className="flex items-center" key={status}>
+                          <input 
+                            type="checkbox" 
+                            id={`status_${status}`} 
+                            className="mr-2"
+                            checked={!!statusFilters[status.toLowerCase()]}
+                            onChange={() => handleStatusChange(status.toLowerCase())}
+                          />
+                          <label htmlFor={`status_${status}`} className="capitalize">{status}</label>
+                        </div>
+                      ))}
+                      
+                      {/* Add new status option */}
+                      <div className="flex items-center mt-2 pt-2 border-t border-gray-100">
+                        <input 
+                          type="text" 
+                          placeholder="Add custom status..."
+                          className="w-full text-sm border border-neutral-200 p-1 rounded-sm"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              const newStatus = e.currentTarget.value.toLowerCase().trim();
+                              if (newStatus) {
+                                handleStatusChange(newStatus);
+                                e.currentTarget.value = '';
+                              }
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                }
+                
+                // Fallback to common statuses
+                return (
+                  <div className="space-y-1">
+                    {/* Common statuses - will show by default */}
+                    {['active', 'inactive', 'pending'].map(status => (
+                      <div className="flex items-center" key={status}>
+                        <input 
+                          type="checkbox" 
+                          id={`status_${status}`} 
+                          className="mr-2"
+                          checked={!!statusFilters[status]}
+                          onChange={() => handleStatusChange(status)}
+                        />
+                        <label htmlFor={`status_${status}`} className="capitalize">{status}</label>
+                      </div>
+                    ))}
+                    
+                    {/* Any other status filters that are already applied but not in the common list */}
+                    {Object.keys(statusFilters)
+                      .filter(status => !['active', 'inactive', 'pending'].includes(status) && statusFilters[status])
+                      .map(status => (
+                        <div className="flex items-center" key={status}>
+                          <input 
+                            type="checkbox" 
+                            id={`status_${status}`} 
+                            className="mr-2"
+                            checked={!!statusFilters[status]}
+                            onChange={() => handleStatusChange(status)}
+                          />
+                          <label htmlFor={`status_${status}`} className="capitalize">{status}</label>
+                        </div>
+                      ))
                     }
-                  }}
-                />
-              </div>
+                    
+                    {/* Add new status option */}
+                    <div className="flex items-center mt-2 pt-2 border-t border-gray-100">
+                      <input 
+                        type="text" 
+                        placeholder="Add custom status..."
+                        className="w-full text-sm border border-neutral-200 p-1 rounded-sm"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const newStatus = e.currentTarget.value.toLowerCase().trim();
+                            if (newStatus) {
+                              handleStatusChange(newStatus);
+                              e.currentTarget.value = '';
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         )}
@@ -336,13 +448,33 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
         {selectedFilterColumns.includes('Make') && (
           <div className="mb-4">
             <label className="block text-sm font-medium text-neutral-500 mb-1">Make</label>
-            <input 
-              type="text" 
-              placeholder="Filter by make..."
-              className="w-full border border-neutral-200 p-2 rounded-sm"
-              value={localFilters['Make'] || ''}
-              onChange={(e) => setLocalFilters(prev => ({...prev, Make: e.target.value}))}
-            />
+            <div className="relative">
+              {loadingColumns['Make'] && (
+                <div className="absolute right-3 top-3">
+                  <Loader size={16} className="animate-spin text-neutral-400" />
+                </div>
+              )}
+              {columnValues['Make'] && columnValues['Make'].length > 0 ? (
+                <select
+                  className="w-full border border-neutral-200 p-2 rounded-sm bg-white"
+                  value={localFilters['Make'] || ''}
+                  onChange={(e) => setLocalFilters(prev => ({...prev, Make: e.target.value}))}
+                >
+                  <option value="">All Makes</option>
+                  {columnValues['Make'].map(value => (
+                    <option key={value} value={value}>{value}</option>
+                  ))}
+                </select>
+              ) : (
+                <input 
+                  type="text" 
+                  placeholder="Filter by make..."
+                  className="w-full border border-neutral-200 p-2 rounded-sm"
+                  value={localFilters['Make'] || ''}
+                  onChange={(e) => setLocalFilters(prev => ({...prev, Make: e.target.value}))}
+                />
+              )}
+            </div>
           </div>
         )}
         
@@ -350,13 +482,33 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
         {selectedFilterColumns.includes('Model') && (
           <div className="mb-4">
             <label className="block text-sm font-medium text-neutral-500 mb-1">Model</label>
-            <input 
-              type="text" 
-              placeholder="Filter by model..."
-              className="w-full border border-neutral-200 p-2 rounded-sm"
-              value={localFilters['Model'] || ''}
-              onChange={(e) => setLocalFilters(prev => ({...prev, Model: e.target.value}))}
-            />
+            <div className="relative">
+              {loadingColumns['Model'] && (
+                <div className="absolute right-3 top-3">
+                  <Loader size={16} className="animate-spin text-neutral-400" />
+                </div>
+              )}
+              {columnValues['Model'] && columnValues['Model'].length > 0 ? (
+                <select
+                  className="w-full border border-neutral-200 p-2 rounded-sm bg-white"
+                  value={localFilters['Model'] || ''}
+                  onChange={(e) => setLocalFilters(prev => ({...prev, Model: e.target.value}))}
+                >
+                  <option value="">All Models</option>
+                  {columnValues['Model'].map(value => (
+                    <option key={value} value={value}>{value}</option>
+                  ))}
+                </select>
+              ) : (
+                <input 
+                  type="text" 
+                  placeholder="Filter by model..."
+                  className="w-full border border-neutral-200 p-2 rounded-sm"
+                  value={localFilters['Model'] || ''}
+                  onChange={(e) => setLocalFilters(prev => ({...prev, Model: e.target.value}))}
+                />
+              )}
+            </div>
           </div>
         )}
         
@@ -364,13 +516,33 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
         {selectedFilterColumns.includes('BodyStyle') && (
           <div className="mb-4">
             <label className="block text-sm font-medium text-neutral-500 mb-1">Body Style</label>
-            <input 
-              type="text" 
-              placeholder="Filter by body style..."
-              className="w-full border border-neutral-200 p-2 rounded-sm"
-              value={localFilters['BodyStyle'] || ''}
-              onChange={(e) => setLocalFilters(prev => ({...prev, BodyStyle: e.target.value}))}
-            />
+            <div className="relative">
+              {loadingColumns['BodyStyle'] && (
+                <div className="absolute right-3 top-3">
+                  <Loader size={16} className="animate-spin text-neutral-400" />
+                </div>
+              )}
+              {columnValues['BodyStyle'] && columnValues['BodyStyle'].length > 0 ? (
+                <select
+                  className="w-full border border-neutral-200 p-2 rounded-sm bg-white"
+                  value={localFilters['BodyStyle'] || ''}
+                  onChange={(e) => setLocalFilters(prev => ({...prev, BodyStyle: e.target.value}))}
+                >
+                  <option value="">All Body Styles</option>
+                  {columnValues['BodyStyle'].map(value => (
+                    <option key={value} value={value}>{value}</option>
+                  ))}
+                </select>
+              ) : (
+                <input 
+                  type="text" 
+                  placeholder="Filter by body style..."
+                  className="w-full border border-neutral-200 p-2 rounded-sm"
+                  value={localFilters['BodyStyle'] || ''}
+                  onChange={(e) => setLocalFilters(prev => ({...prev, BodyStyle: e.target.value}))}
+                />
+              )}
+            </div>
           </div>
         )}
         
@@ -378,13 +550,33 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
         {selectedFilterColumns.includes('FuelType') && (
           <div className="mb-4">
             <label className="block text-sm font-medium text-neutral-500 mb-1">Fuel Type</label>
-            <input 
-              type="text" 
-              placeholder="Filter by fuel type..."
-              className="w-full border border-neutral-200 p-2 rounded-sm"
-              value={localFilters['FuelType'] || ''}
-              onChange={(e) => setLocalFilters(prev => ({...prev, FuelType: e.target.value}))}
-            />
+            <div className="relative">
+              {loadingColumns['FuelType'] && (
+                <div className="absolute right-3 top-3">
+                  <Loader size={16} className="animate-spin text-neutral-400" />
+                </div>
+              )}
+              {columnValues['FuelType'] && columnValues['FuelType'].length > 0 ? (
+                <select
+                  className="w-full border border-neutral-200 p-2 rounded-sm bg-white"
+                  value={localFilters['FuelType'] || ''}
+                  onChange={(e) => setLocalFilters(prev => ({...prev, FuelType: e.target.value}))}
+                >
+                  <option value="">All Fuel Types</option>
+                  {columnValues['FuelType'].map(value => (
+                    <option key={value} value={value}>{value}</option>
+                  ))}
+                </select>
+              ) : (
+                <input 
+                  type="text" 
+                  placeholder="Filter by fuel type..."
+                  className="w-full border border-neutral-200 p-2 rounded-sm"
+                  value={localFilters['FuelType'] || ''}
+                  onChange={(e) => setLocalFilters(prev => ({...prev, FuelType: e.target.value}))}
+                />
+              )}
+            </div>
           </div>
         )}
         
@@ -394,13 +586,33 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
           .map(column => (
             <div className="mb-4" key={column}>
               <label className="block text-sm font-medium text-neutral-500 mb-1">{column}</label>
-              <input 
-                type="text" 
-                placeholder={`Filter by ${column.toLowerCase()}...`}
-                className="w-full border border-neutral-200 p-2 rounded-sm"
-                value={localFilters[column] || ''}
-                onChange={(e) => setLocalFilters(prev => ({...prev, [column]: e.target.value}))}
-              />
+              <div className="relative">
+                {loadingColumns[column] && (
+                  <div className="absolute right-3 top-3">
+                    <Loader size={16} className="animate-spin text-neutral-400" />
+                  </div>
+                )}
+                {columnValues[column] && columnValues[column].length > 0 ? (
+                  <select
+                    className="w-full border border-neutral-200 p-2 rounded-sm bg-white"
+                    value={localFilters[column] || ''}
+                    onChange={(e) => setLocalFilters(prev => ({...prev, [column]: e.target.value}))}
+                  >
+                    <option value="">{`All ${column}s`}</option>
+                    {columnValues[column].map(value => (
+                      <option key={value} value={value}>{value}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input 
+                    type="text" 
+                    placeholder={`Filter by ${column.toLowerCase()}...`}
+                    className="w-full border border-neutral-200 p-2 rounded-sm"
+                    value={localFilters[column] || ''}
+                    onChange={(e) => setLocalFilters(prev => ({...prev, [column]: e.target.value}))}
+                  />
+                )}
+              </div>
             </div>
           ))
         }
