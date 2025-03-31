@@ -20,6 +20,7 @@ import {
   BarChart2, 
   PieChart as PieChartIcon, 
   LineChart as LineChartIcon,
+  X,
   ChevronLeft 
 } from "lucide-react";
 
@@ -33,6 +34,7 @@ interface ChartPanelProps {
   data: CsvData[];
   headers: string[];
   isCollapsed?: boolean;
+  onToggleCollapse?: (collapsed: boolean) => void;
 }
 
 interface ChartData {
@@ -43,11 +45,20 @@ interface ChartData {
 const ChartPanel: React.FC<ChartPanelProps> = ({ 
   data,
   headers,
-  isCollapsed = false
+  isCollapsed = false,
+  onToggleCollapse
 }) => {
   const [selectedChart, setSelectedChart] = useState<string>(headers[0] || "make");
   const [chartType, setChartType] = useState<'pie' | 'bar' | 'line'>('pie');
   const [isLocalCollapsed, setIsLocalCollapsed] = useState(isCollapsed);
+  
+  // Update parent component when local collapse state changes
+  const toggleCollapse = (newState: boolean) => {
+    setIsLocalCollapsed(newState);
+    if (onToggleCollapse) {
+      onToggleCollapse(newState);
+    }
+  };
 
   // Detect the best chart type for each field based on data type
   const detectBestChartType = (fieldName: string): 'pie' | 'bar' | 'line' => {
@@ -154,7 +165,7 @@ const ChartPanel: React.FC<ChartPanelProps> = ({
       <div className="w-8 bg-white border border-[#d0d0d0] flex flex-col items-center">
         <button 
           className="w-full p-2 bg-[#f5f5f5] border-b border-[#d0d0d0] text-center"
-          onClick={() => setIsLocalCollapsed(false)}
+          onClick={() => toggleCollapse(false)}
         >
           <BarChart2 size={16} className="mx-auto text-[#167ABC]" />
         </button>
@@ -169,8 +180,8 @@ const ChartPanel: React.FC<ChartPanelProps> = ({
           <BarChart2 size={18} className="text-[#167ABC]" />
           Data Visualization
         </span>
-        <button className="text-neutral-400 hover:text-neutral-500" onClick={() => setIsLocalCollapsed(true)}>
-          <ChevronLeft size={18} />
+        <button className="text-neutral-400 hover:text-neutral-500" onClick={() => toggleCollapse(true)}>
+          <X size={16} />
         </button>
       </div>
       

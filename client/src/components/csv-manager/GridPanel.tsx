@@ -201,7 +201,72 @@ const GridPanel: React.FC<GridPanelProps> = ({
               </tr>
             </thead>
             <tbody>
-              {data.map((item, index) => {
+              {/* Apply sorting to data if sortField is set */}
+              {data
+                .slice()
+                .sort((a, b) => {
+                  if (!sortField) return 0;
+                  
+                  // Get cell values, handling potential BOM characters
+                  const aRowData = a.rowData as CsvRowData;
+                  const bRowData = b.rowData as CsvRowData;
+                  
+                  // Clean header name if it has BOM character
+                  const cleanSortField = sortField.replace(/^\ufeff/, '');
+                  
+                  // Try to get values with all possible key variations
+                  let aValue = aRowData[sortField];
+                  let bValue = bRowData[sortField];
+                  
+                  // Try clean version if original key doesn't exist
+                  if (aValue === undefined && sortField !== cleanSortField) {
+                    aValue = aRowData[cleanSortField];
+                  }
+                  
+                  if (bValue === undefined && sortField !== cleanSortField) {
+                    bValue = bRowData[cleanSortField];
+                  }
+                  
+                  // Try to find key with BOM character that matches when cleaned
+                  if (aValue === undefined) {
+                    const aMatchingKey = Object.keys(aRowData).find(key => 
+                      key.replace(/^\ufeff/, '') === cleanSortField
+                    );
+                    if (aMatchingKey) {
+                      aValue = aRowData[aMatchingKey];
+                    }
+                  }
+                  
+                  if (bValue === undefined) {
+                    const bMatchingKey = Object.keys(bRowData).find(key => 
+                      key.replace(/^\ufeff/, '') === cleanSortField
+                    );
+                    if (bMatchingKey) {
+                      bValue = bRowData[bMatchingKey];
+                    }
+                  }
+                  
+                  // Handle undefined or null values
+                  if (aValue === undefined && bValue === undefined) return 0;
+                  if (aValue === undefined) return sortDirection === 'asc' ? 1 : -1;
+                  if (bValue === undefined) return sortDirection === 'asc' ? -1 : 1;
+                  
+                  // Sort numerically if both values are numbers
+                  if (!isNaN(Number(aValue)) && !isNaN(Number(bValue))) {
+                    return sortDirection === 'asc' 
+                      ? Number(aValue) - Number(bValue) 
+                      : Number(bValue) - Number(aValue);
+                  }
+                  
+                  // Otherwise sort alphabetically
+                  const aStr = String(aValue).toLowerCase();
+                  const bStr = String(bValue).toLowerCase();
+                  
+                  return sortDirection === 'asc' 
+                    ? aStr.localeCompare(bStr) 
+                    : bStr.localeCompare(aStr);
+                })
+                .map((item, index) => {
                 const rowData = item.rowData as CsvRowData;
                 return (
                   <tr 
@@ -211,16 +276,37 @@ const GridPanel: React.FC<GridPanelProps> = ({
                   >
                     <td className="px-4 py-2 text-sm">{item.id}</td>
                     {headers.map((header) => {
-                      const cellValue = rowData[header];
-                      return header.toLowerCase().includes('status') ? (
+                      // Handle the case where header may have BOM character
+                      const cleanHeader = header.replace(/^\ufeff/, '');
+                      // Try to get the value using both the original and cleaned header
+                      let cellValue = rowData[header];
+                      
+                      // If value is undefined, try with the clean header name
+                      if (cellValue === undefined && header !== cleanHeader) {
+                        cellValue = rowData[cleanHeader];
+                      }
+                      
+                      // If still undefined, check if there's a key with BOM character
+                      if (cellValue === undefined) {
+                        // Look for keys with BOM character that match when cleaned
+                        const matchingKey = Object.keys(rowData).find(key => 
+                          key.replace(/^\ufeff/, '') === cleanHeader
+                        );
+                        if (matchingKey) {
+                          cellValue = rowData[matchingKey];
+                        }
+                      }
+                      
+                      return header.toLowerCase().includes('status') || 
+                             cleanHeader.toLowerCase().includes('status') ? (
                         <td className="px-4 py-2 text-sm" key={header}>
-                          <span className={`px-2 py-1 rounded-full text-xs ${statusColor(String(cellValue))}`}>
-                            {cellValue}
+                          <span className={`px-2 py-1 rounded-full text-xs ${statusColor(String(cellValue || ''))}`}>
+                            {cellValue || ''}
                           </span>
                         </td>
                       ) : (
                         <td className="px-4 py-2 text-sm" key={header}>
-                          {cellValue}
+                          {cellValue !== undefined ? cellValue : ''}
                         </td>
                       );
                     })}
