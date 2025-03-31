@@ -1,11 +1,31 @@
 import React from 'react';
 import { type CsvFile } from "@shared/schema";
+import { FileText } from 'lucide-react';
 
 interface FileNavBarProps {
   files: CsvFile[];
   selectedFile: CsvFile | null;
   onFileSelect: (file: CsvFile) => void;
 }
+
+/**
+ * Formats a filename by:
+ * 1. Removing file extension
+ * 2. Converting to proper case
+ * 3. Converting dashes and underscores to spaces
+ */
+const formatFileName = (fileName: string): string => {
+  // Remove file extension
+  const withoutExtension = fileName.replace(/\.[^/.]+$/, "");
+  
+  // Replace dashes and underscores with spaces
+  const withSpaces = withoutExtension.replace(/[-_]+/g, " ");
+  
+  // Convert to proper case (capitalize first letter of each word)
+  return withSpaces.replace(/\w\S*/g, (txt) => {
+    return txt.charAt(0).toUpperCase() + txt.slice(1).toLowerCase();
+  });
+};
 
 const FileNavBar: React.FC<FileNavBarProps> = ({
   files,
@@ -29,8 +49,8 @@ const FileNavBar: React.FC<FileNavBarProps> = ({
               }`}
             onClick={() => onFileSelect(file)}
           >
-            <i className="fas fa-file-csv mr-2"></i>
-            {file.originalName}
+            <FileText className="inline-block w-4 h-4 mr-2" />
+            {formatFileName(file.originalName)}
             <span className="ml-2 text-xs opacity-70">
               ({new Date(file.createdAt).toLocaleDateString()})
             </span>

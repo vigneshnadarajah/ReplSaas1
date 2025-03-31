@@ -83,9 +83,35 @@ const ChartPanel: React.FC<ChartPanelProps> = ({
     
     data.forEach(item => {
       const rowData = item.rowData as CsvRowData;
-      const value = String(rowData[fieldName] || 'N/A');
       
-      counter[value] = (counter[value] || 0) + 1;
+      // Handle potential BOM character in field name
+      const cleanFieldName = fieldName.replace(/^\ufeff/, '');
+      
+      // Try to get value using different field name variations
+      let value;
+      
+      // First try with the original field name
+      value = rowData[fieldName];
+      
+      // If not found and the field name contains a BOM, try with the clean version
+      if (value === undefined && fieldName !== cleanFieldName) {
+        value = rowData[cleanFieldName];
+      }
+      
+      // If still not found, try to find a matching key with a BOM character
+      if (value === undefined) {
+        const matchingKey = Object.keys(rowData).find(key => 
+          key.replace(/^\ufeff/, '') === cleanFieldName
+        );
+        if (matchingKey) {
+          value = rowData[matchingKey];
+        }
+      }
+      
+      // Fallback to N/A if the value is still undefined
+      const stringValue = String(value !== undefined ? value : 'N/A');
+      
+      counter[stringValue] = (counter[stringValue] || 0) + 1;
     });
     
     return Object.entries(counter)
@@ -106,15 +132,56 @@ const ChartPanel: React.FC<ChartPanelProps> = ({
     
     data.forEach(item => {
       const rowData = item.rowData as CsvRowData;
-      const key = String(rowData[fieldName] || 'N/A');
-      const metricValue = Number(rowData[metricField] || 0);
+      
+      // Handle potential BOM character in field names
+      const cleanFieldName = fieldName.replace(/^\ufeff/, '');
+      const cleanMetricField = metricField.replace(/^\ufeff/, '');
+      
+      // Try to get the key value (x-axis value)
+      let keyValue;
+      // First try with the original field name
+      keyValue = rowData[fieldName];
+      // If not found and the field name contains a BOM, try with the clean version
+      if (keyValue === undefined && fieldName !== cleanFieldName) {
+        keyValue = rowData[cleanFieldName];
+      }
+      // If still not found, try to find a matching key with a BOM character
+      if (keyValue === undefined) {
+        const matchingKey = Object.keys(rowData).find(key => 
+          key.replace(/^\ufeff/, '') === cleanFieldName
+        );
+        if (matchingKey) {
+          keyValue = rowData[matchingKey];
+        }
+      }
+      
+      // Try to get the metric value (y-axis value)
+      let metricValue;
+      // First try with the original metric field name
+      metricValue = rowData[metricField];
+      // If not found and the field name contains a BOM, try with the clean version
+      if (metricValue === undefined && metricField !== cleanMetricField) {
+        metricValue = rowData[cleanMetricField];
+      }
+      // If still not found, try to find a matching key with a BOM character
+      if (metricValue === undefined) {
+        const matchingKey = Object.keys(rowData).find(key => 
+          key.replace(/^\ufeff/, '') === cleanMetricField
+        );
+        if (matchingKey) {
+          metricValue = rowData[matchingKey];
+        }
+      }
+      
+      const key = String(keyValue !== undefined ? keyValue : 'N/A');
+      const numericValue = Number(metricValue || 0);
       
       if (!aggregated[key]) {
         aggregated[key] = { count: 0, sum: 0 };
       }
       
       aggregated[key].count += 1;
-      aggregated[key].sum += isNaN(metricValue) ? 0 : metricValue;
+      aggregated[key].sum += isNaN(numericValue) ? 0 : numericValue;
     });
     
     return Object.entries(aggregated)
@@ -194,7 +261,13 @@ const ChartPanel: React.FC<ChartPanelProps> = ({
             onChange={handleChartChange}
           >
             {headers.map((header) => (
-              <option key={header} value={header}>{header}</option>
+              <option key={header} value={header}>
+                {header.replace(/\w\S*/g, (txt) => {
+                  // Format header text in proper case
+                  const cleanHeader = txt.replace(/^\ufeff/, ''); // Remove BOM if present
+                  return cleanHeader.charAt(0).toUpperCase() + cleanHeader.slice(1).toLowerCase();
+                })}
+              </option>
             ))}
           </select>
         </div>
