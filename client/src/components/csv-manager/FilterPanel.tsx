@@ -11,6 +11,8 @@ interface FilterPanelProps {
   searchColumn: string;
   onSearchColumnChange: (column: string) => void;
   fileId?: number; // Optional file ID to fetch unique column values
+  isCollapsed?: boolean;
+  onToggleCollapse?: (collapsed: boolean) => void;
 }
 
 const FilterPanel: React.FC<FilterPanelProps> = ({
@@ -22,9 +24,19 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   onSearchTermChange,
   searchColumn,
   onSearchColumnChange,
-  fileId
+  fileId,
+  isCollapsed: propsIsCollapsed = false,
+  onToggleCollapse
 }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isLocalCollapsed, setIsLocalCollapsed] = useState(propsIsCollapsed);
+  
+  // Update parent component when local collapse state changes
+  const toggleCollapse = (newState: boolean) => {
+    setIsLocalCollapsed(newState);
+    if (onToggleCollapse) {
+      onToggleCollapse(newState);
+    }
+  };
   const [localFilters, setLocalFilters] = useState<Record<string, any>>({});
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
@@ -201,12 +213,12 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
     });
   }, [fileId, selectedFilterColumns, fetchColumnValues]);
 
-  if (isCollapsed) {
+  if (isLocalCollapsed) {
     return (
       <div className="w-8 bg-white border border-[#d0d0d0] flex flex-col items-center">
         <button 
           className="w-full p-2 bg-[#f5f5f5] border-b border-[#d0d0d0] text-center"
-          onClick={() => setIsCollapsed(false)}
+          onClick={() => toggleCollapse(false)}
         >
           <Filter size={16} />
         </button>
@@ -229,7 +241,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
           >
             {showColumnSelector ? <ChevronDown size={16} /> : <ChevronLeft size={16} />}
           </button>
-          <button className="text-neutral-400 hover:text-neutral-500" onClick={() => setIsCollapsed(true)}>
+          <button className="text-neutral-400 hover:text-neutral-500" onClick={() => toggleCollapse(true)}>
             <X size={16} />
           </button>
         </div>

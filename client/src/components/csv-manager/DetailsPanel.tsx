@@ -1,22 +1,38 @@
 import React, { useState } from 'react';
 import { type CsvData, type CsvRowData } from "@shared/schema";
+import { Info, X, Edit, ExternalLink } from 'lucide-react';
 
 interface DetailsPanelProps {
   record: CsvData | null;
   headers: string[];
+  isCollapsed?: boolean;
+  onToggleCollapse?: (collapsed: boolean) => void;
 }
 
-const DetailsPanel: React.FC<DetailsPanelProps> = ({ record, headers }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+const DetailsPanel: React.FC<DetailsPanelProps> = ({ 
+  record, 
+  headers,
+  isCollapsed: propsIsCollapsed = false,
+  onToggleCollapse
+}) => {
+  const [isLocalCollapsed, setIsLocalCollapsed] = useState(propsIsCollapsed);
+  
+  // Update parent component when local collapse state changes
+  const toggleCollapse = (newState: boolean) => {
+    setIsLocalCollapsed(newState);
+    if (onToggleCollapse) {
+      onToggleCollapse(newState);
+    }
+  };
 
-  if (isCollapsed) {
+  if (isLocalCollapsed) {
     return (
       <div className="w-8 bg-white border border-[#d0d0d0] flex flex-col items-center">
         <button 
           className="w-full p-2 bg-[#f5f5f5] border-b border-[#d0d0d0] text-center"
-          onClick={() => setIsCollapsed(false)}
+          onClick={() => toggleCollapse(false)}
         >
-          <i className="fas fa-info-circle"></i>
+          <Info size={16} />
         </button>
       </div>
     );
@@ -35,8 +51,8 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ record, headers }) => {
   
   // Extract initials
   const initials = firstName && lastName ? 
-    `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() :
-    fullName.split(' ').map(part => part.charAt(0)).join('').toUpperCase();
+    `${String(firstName).charAt(0)}${String(lastName).charAt(0)}`.toUpperCase() :
+    String(fullName).split(' ').map((part: string) => part.charAt(0)).join('').toUpperCase();
   
   // Extract status
   const status = rowData['Status'] || rowData['status'] || '';
@@ -63,8 +79,8 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ record, headers }) => {
     <div className="w-72 flex flex-col shrink-0 bg-white border border-[#d0d0d0] rounded-sm overflow-hidden">
       <div className="flex justify-between items-center bg-[#f5f5f5] border-b border-[#d0d0d0] p-2 px-4">
         <span className="font-semibold">Record Details</span>
-        <button className="text-neutral-400 hover:text-neutral-500" onClick={() => setIsCollapsed(true)}>
-          <i className="fas fa-minus"></i>
+        <button className="text-neutral-400 hover:text-neutral-500" onClick={() => toggleCollapse(true)}>
+          <X size={16} />
         </button>
       </div>
       
@@ -129,7 +145,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ record, headers }) => {
           </>
         ) : (
           <div className="flex flex-col items-center justify-center h-64 text-center">
-            <i className="fas fa-info-circle text-4xl text-gray-300 mb-3"></i>
+            <Info size={40} className="text-gray-300 mb-3" />
             <p className="text-gray-500">Select a record to view details</p>
           </div>
         )}
@@ -139,11 +155,11 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ record, headers }) => {
         <div className="p-3 border-t">
           <div className="flex gap-2">
             <button className="bg-[#f5f5f5] border border-[#d0d0d0] rounded-sm py-1.5 px-3 flex-1 flex items-center justify-center hover:bg-[#e8e8e8] transition-all duration-200">
-              <i className="fas fa-edit mr-2"></i>
+              <Edit size={14} className="mr-2" />
               Edit
             </button>
             <button className="bg-[#f5f5f5] border border-[#d0d0d0] rounded-sm py-1.5 px-3 flex items-center justify-center hover:bg-[#e8e8e8] transition-all duration-200">
-              <i className="fas fa-external-link-alt mr-2"></i>
+              <ExternalLink size={14} className="mr-2" />
               View All
             </button>
           </div>

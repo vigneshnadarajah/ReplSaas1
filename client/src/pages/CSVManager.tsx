@@ -24,6 +24,11 @@ export default function CSVManager() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [statusMessage, setStatusMessage] = useState<string>("Ready");
   const [searchColumn, setSearchColumn] = useState<string>("all");
+  
+  // Panel collapse states
+  const [isFilterPanelCollapsed, setIsFilterPanelCollapsed] = useState<boolean>(false);
+  const [isDetailsPanelCollapsed, setIsDetailsPanelCollapsed] = useState<boolean>(false);
+  const [isChartPanelCollapsed, setIsChartPanelCollapsed] = useState<boolean>(false);
 
   // Query for files list
   const filesQuery = useQuery<CsvFile[]>({
@@ -306,6 +311,8 @@ export default function CSVManager() {
           searchColumn={searchColumn}
           onSearchColumnChange={setSearchColumn}
           fileId={selectedFile?.id}
+          isCollapsed={isFilterPanelCollapsed}
+          onToggleCollapse={setIsFilterPanelCollapsed}
         />
         
         {/* Grid Panel */}
@@ -341,6 +348,8 @@ export default function CSVManager() {
         <DetailsPanel 
           record={selectedRecord}
           headers={selectedFile?.headers || []}
+          isCollapsed={isDetailsPanelCollapsed}
+          onToggleCollapse={setIsDetailsPanelCollapsed}
         />
         
         {/* Chart Panel */}
@@ -349,6 +358,8 @@ export default function CSVManager() {
             ? (filterMutation.data?.data || []) 
             : (dataQuery.data?.data || []))}
           headers={selectedFile?.headers || []}
+          isCollapsed={isChartPanelCollapsed}
+          onToggleCollapse={setIsChartPanelCollapsed}
         />
       </div>
       
