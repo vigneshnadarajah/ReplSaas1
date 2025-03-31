@@ -29,6 +29,7 @@ export default function CSVManager() {
   const [isFilterPanelCollapsed, setIsFilterPanelCollapsed] = useState<boolean>(false);
   const [isDetailsPanelCollapsed, setIsDetailsPanelCollapsed] = useState<boolean>(false);
   const [isChartPanelCollapsed, setIsChartPanelCollapsed] = useState<boolean>(false);
+  const [isGridPanelCollapsed, setIsGridPanelCollapsed] = useState<boolean>(false);
 
   // Query for files list
   const filesQuery = useQuery<CsvFile[]>({
@@ -342,6 +343,8 @@ export default function CSVManager() {
           onExport={handleExport}
           onQuickSearch={handleQuickSearch}
           isLoading={dataQuery.isLoading || filterMutation.isPending}
+          isCollapsed={isGridPanelCollapsed}
+          onToggleCollapse={setIsGridPanelCollapsed}
         />
         
         {/* Details Panel */}
