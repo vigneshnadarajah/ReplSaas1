@@ -67,7 +67,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       for await (const record of parser) {
         if (isFirstRow) {
-          Object.keys(record).forEach(header => headers.push(header));
+          // Process headers and clean any BOM characters
+          Object.keys(record).forEach(header => {
+            // Clean BOM character if present
+            const cleanHeader = header.replace(/^\ufeff/, '');
+            headers.push(cleanHeader);
+            
+            // If the header has changed due to BOM removal, add a mapping in the record
+            if (cleanHeader !== header) {
+              record[cleanHeader] = record[header]; 
+              delete record[header];
+            }
+          });
           isFirstRow = false;
         }
         records.push(record);
@@ -325,6 +336,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting CSV file:", error);
       res.status(500).json({ message: "Error deleting CSV file", error: (error as Error).message });
+    }
+  });
+
+  // Get unique column values for filtering
+  app.get("/api/csv/column-values/:fileId/:columnName", async (req, res) => {
+    try {
+      const fileId = parseInt(req.params.fileId);
+      if (isNaN(fileId)) {
+        return res.status(400).json({ message: "Invalid file ID" });
+      }
+
+      // Decode URI component and handle BOM character
+      let columnName = decodeURIComponent(req.params.columnName);
+      if (!columnName) {
+        return res.status(400).json({ message: "Column name is required" });
+      }
+      
+      // Clean column name from BOM character if present
+      const cleanColumnName = columnName.replace(/^\ufeff/, '');
+      
+      const file = await storage.getCsvFileById(fileId);
+      if (!file) {
+        return res.status(404).json({ message: "CSV file not found" });
+      }
+
+      const limit = parseInt(req.query.limit as string) || 50;
+      // Use the cleaned column name to fetch values
+      const values = await storage.getUniqueColumnValues(fileId, cleanColumnName, limit);
+      
+      res.json({
+        columnName: cleanColumnName, // Return the cleaned column name
+        values,
+        count: values.length
+      });
+    } catch (error) {
+      console.error("Error getting column values:", error);
+      res.status(500).json({ message: "Error getting column values", error: (error as Error).message });
     }
   });
 

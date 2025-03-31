@@ -305,6 +305,7 @@ export default function CSVManager() {
           onSearchTermChange={setSearchTerm}
           searchColumn={searchColumn}
           onSearchColumnChange={setSearchColumn}
+          fileId={selectedFile?.id}
         />
         
         {/* Grid Panel */}

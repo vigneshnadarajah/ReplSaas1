@@ -17,6 +17,9 @@ export interface IStorage {
   getCsvDataById(id: number): Promise<CsvData | undefined>;
   searchCsvData(fileId: number, searchTerm: string, fields?: string[]): Promise<CsvData[]>;
   filterCsvData(fileId: number, filters: Record<string, any>, page: number, limit: number): Promise<{data: CsvData[], total: number}>;
+  
+  // Get unique values for a specific column
+  getUniqueColumnValues(fileId: number, columnName: string, limit?: number): Promise<string[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -265,6 +268,48 @@ export class MemStorage implements IStorage {
       data: allItems.slice(startIndex, endIndex),
       total
     };
+  }
+
+  async getUniqueColumnValues(fileId: number, columnName: string, limit: number = 50): Promise<string[]> {
+    const items = Array.from(this.csvDataItems.values())
+      .filter(item => item.fileId === fileId);
+    
+    // Create a Set to track unique values
+    const uniqueValues = new Set<string>();
+    
+    // Clean column name from BOM character if present
+    const cleanColumnName = columnName.replace(/^\ufeff/, '');
+    
+    // Collect all unique values for the specified column
+    // Try both the original column name and the cleaned version (handles BOM characters)
+    items.forEach(item => {
+      const rowData = item.rowData as CsvRowData;
+      
+      // Try the original column name first
+      if (rowData[columnName] !== undefined) {
+        uniqueValues.add(String(rowData[columnName]));
+      } 
+      // If not found and it differs from the clean version, try the clean version
+      else if (columnName !== cleanColumnName && rowData[cleanColumnName] !== undefined) {
+        uniqueValues.add(String(rowData[cleanColumnName]));
+      }
+      // For BOM characters at the beginning of values
+      else {
+        // Check for keys that might have BOM characters
+        const possibleKeys = Object.keys(rowData).filter(key => 
+          key.replace(/^\ufeff/, '') === cleanColumnName
+        );
+        
+        if (possibleKeys.length > 0) {
+          uniqueValues.add(String(rowData[possibleKeys[0]]));
+        }
+      }
+    });
+    
+    // Convert to array, sort, and limit if needed
+    return Array.from(uniqueValues)
+      .sort()
+      .slice(0, limit);
   }
 }
 
